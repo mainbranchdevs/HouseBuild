@@ -47,7 +47,7 @@
 <body>
 <aside>
   <h1>Anijo House</h1>
-  <p class="sub">3D model R0 · front balcony design studio · <a href="#" onclick="document.getElementById('plans').hidden=false;return false">2D plans</a></p>
+  <p class="sub">3D model R0 · front &amp; roof design studio · <a href="#" onclick="document.getElementById('plans').hidden=false;return false">2D plans</a></p>
 
   <h2>View</h2>
   <div class="views">
@@ -56,13 +56,18 @@
     <button data-view="corner">Corner</button>
     <button data-view="aerial">Aerial</button>
     <button data-view="balcony">Balcony</button>
+    <button data-view="roof">Roof</button>
   </div>
 
-  <h2>Front balcony option</h2>
-  <label class="opt"><input type="radio" name="opt" value="A"><b>A · Keep existing edge</b><small>No new slab. Parapet on the existing 3'9" edge.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="B"><b>B · Full width to 5'0"</b><small>Adds a 1'3" strip along the whole 32'3" front.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="C"><b>C · Central box bay</b><small>Only the middle steps out to 5'0", with a pillar at each corner.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="D"><b>D · Bay + portal frame</b><small>Like C, but the pillars rise to roof level with a beam and pergola.</small></label>
+  <h2>Front design</h2>
+  <label class="opt"><input type="radio" name="opt" value="A"><b>A · Keep existing edge</b><small>No new slab. Railing on the existing 3'9" edge.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="B"><b>B · Full width to 5'0"</b><small>Adds a 1'3" strip along the whole 32'3" front, 4 pillars.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="C"><b>C · Central box bay</b><small>Middle steps out to 5'0", one pillar at each corner.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="D"><b>D · Bay + portal frame</b><small>Pillars rise to roof level with a beam and pergola.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="E"><b>E · Modern box portico</b><small>Wood-clad pillars, deep white box fascia, LED strip, glass railing. (Your image 1)</small></label>
+  <label class="opt"><input type="radio" name="opt" value="F"><b>F · Classical portico</b><small>Round fluted columns, beam with dentils and cornice. (Your image 2)</small></label>
+  <label class="opt"><input type="radio" name="opt" value="G"><b>G · Indian ornate portico</b><small>Square carved pillars with brackets, rosette band, arch at the door. (Your image 3)</small></label>
+  <label class="opt"><input type="radio" name="opt" value="H"><b>H · Stone frame · floating box</b><small>Full-height stone fins and a roof slab over the bay, glass railing.</small></label>
   <div class="row" id="bayRow"><span>Bay width</span>
     <select id="bay">
       <option value="144">12'0"</option>
@@ -71,18 +76,33 @@
       <option value="192">16'0"</option>
     </select></div>
 
+
+  <h2>Upper terrace (2nd roof)</h2>
+  <label class="opt"><input type="radio" name="roof" value="R0"><b>R0 · Bare roof (as now)</b><small>No parapet, no access.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R1"><b>R1 · Safe terrace</b><small>Parapet and railing all round, same style as the front.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R2"><b>R2 · Pergola deck + planters</b><small>Wooden pergola over a seating deck, planters along the edges.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R3"><b>R3 · Polycarbonate shade</b><small>Steel frame with a light, rain-proof roof sheet, plus water tank.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R4"><b>R4 · Solar canopy</b><small>Raised steel frame with solar panels tilted south. Shade and power.</small></label>
+  <div class="row"><span>Way up to the roof</span>
+    <select id="access">
+      <option value="none">None yet</option>
+      <option value="straight">Straight steel stair (east terrace)</option>
+      <option value="spiral">Spiral stair 5'0" (east terrace)</option>
+    </select></div>
+
   <h2>Boundary &amp; pillars</h2>
   <div class="row"><span>Parapet</span>
     <select id="parapet">
       <option value="solid">Solid wall 3'0"</option>
       <option value="railV">1'6" wall + vertical railing</option>
       <option value="railH">1'6" wall + horizontal rails</option>
+      <option value="glass">6" curb + glass railing</option>
     </select></div>
   <div class="row"><span>Pillar size</span>
     <select id="pillar"><option value="9">9" × 9"</option><option value="12">12" × 12"</option><option value="15">15" × 15"</option></select></div>
   <div class="row"><span>Pillar finish</span>
     <select id="pillarFinish">
-      <option value="plaster">Plaster grey</option><option value="white">White</option>
+      <option value="plaster">Plaster grey</option><option value="white">White</option><option value="cream">Cream</option>
       <option value="terracotta">Terracotta</option><option value="stone">Dark stone</option><option value="wood">Wood tone</option>
     </select></div>
   <div class="row"><span>Wall colour</span>
@@ -94,7 +114,7 @@
   <h2>Scene</h2>
   <div class="row"><span>Sun <b id="hourLbl"></b></span><input id="hour" type="range" min="6" max="18" step="0.25" style="width:170px"></div>
   <div class="row"><label><input type="checkbox" id="tNeighbour"> Neighbouring building</label></div>
-  <div class="row"><label><input type="checkbox" id="tRoof"> First-floor roof</label></div>
+  <div class="row"><label><input type="checkbox" id="tRoof"> First-floor roof + upper terrace</label></div>
   <div class="row"><label><input type="checkbox" id="tLabels"> Labels</label></div>
 
   <p class="note">Draft for visualising only. Pillar footings and the new slab need a structural engineer's approval before any work.</p>
@@ -126,7 +146,9 @@ const STAIR_HOLE = [186, 119, 281.25, 239];
 // ------------------------------------------------------------------ design state
 const params = new URLSearchParams(location.search);
 const state = {
-  option: params.get('opt') || 'C',     // A existing edge, B full width 5', C central bay, D bay + portal frame
+  option: params.get('opt') || 'C',     // front design A..H (see FRONTS)
+  roofDesign: params.get('rd') || 'R0', // upper terrace design R0..R4 (see ROOFS)
+  access: params.get('ac') || 'none',   // none | straight | spiral
   bay: +(params.get('w') || 168),       // bay width in inches
   parapet: params.get('par') || 'railH',// solid | railV | railH
   pillar: +(params.get('p') || 12),     // pillar size inches
@@ -175,7 +197,7 @@ scene.add(root);
 // ------------------------------------------------------------------ materials
 const std = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.92, ...extra });
 const FACADES = { grey: 0xb8b3a9, offwhite: 0xece6da, beige: 0xdcc9a8 };
-const PILLARS = { plaster: 0xa9a49a, white: 0xf4f1ea, terracotta: 0xb4643f, stone: 0x5f5b55, wood: 0x8a5a36 };
+const PILLARS = { plaster: 0xa9a49a, white: 0xf4f1ea, cream: 0xeadcbc, terracotta: 0xb4643f, stone: 0x5f5b55, wood: 0x9a6a42 };
 const mat = {
   wall: std(FACADES[state.facade]),
   trim: std(0xf1ede4),
@@ -190,8 +212,21 @@ const mat = {
   stair: std(0xb3ada2),
   neighbour: std(0xd9d2c3, { transparent: true, opacity: 0.16, depthWrite: false }),
   pillar: std(PILLARS[state.pillarFinish]),
+  pillarFlat: std(PILLARS[state.pillarFinish], { flatShading: true }),   // faceted = fluted look on round columns
+  accent: std(0xf4f1ea),                       // white mouldings / plinth blocks
+  cream: std(0xeadcbc),
+  stoneClad: std(0x4f4b46, { roughness: 0.8 }),
   newSlab: std(0xc9a08f),
   pergola: std(0x6b4a30, { roughness: 0.7 }),
+  led: new THREE.MeshStandardMaterial({ color: 0xffe2b0, emissive: 0xffc06a, emissiveIntensity: 2.2 }),
+  glassPanel: new THREE.MeshStandardMaterial({ color: 0xbfe0ea, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.32, depthWrite: false }),
+  steel: std(0x3b3e42, { roughness: 0.45, metalness: 0.7 }),
+  poly: new THREE.MeshStandardMaterial({ color: 0xf2f6f7, roughness: 0.3, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }),
+  pv: std(0x1b2a49, { roughness: 0.25, metalness: 0.5 }),
+  tank: std(0x1f1f1f, { roughness: 0.6 }),
+  deck: std(0xa27b55, { roughness: 0.85 }),
+  planter: std(0x7d6650),
+  plant: std(0x4f7a3a),
 };
 
 // ------------------------------------------------------------------ geometry helpers (inches)
@@ -205,6 +240,25 @@ function box(x1, x2, y1, y2, h1, h2, material, parent) {
   return m;
 }
 const rectBox = (r, h1, h2, m, p) => box(r[0], r[2], r[1], r[3], h1, h2, m, p);
+
+// vertical cylinder centred at plan (cx, cy)
+function cyl(cx, cy, rTop, rBot, h1, h2, material, parent, seg = 24) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h2 - h1, seg), material);
+  m.position.set(cx, (h1 + h2) / 2, cy);
+  m.castShadow = true; m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+// round bar between two points given as [planX, planY, height]
+function bar(a, b, r, material, parent) {
+  const A = new THREE.Vector3(a[0], a[2], a[1]), B = new THREE.Vector3(b[0], b[2], b[1]);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, A.distanceTo(B), 8), material);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
+  m.castShadow = true;
+  parent.add(m);
+  return m;
+}
 
 function label(text, x, h, y, parent, cls = '') {
   const div = document.createElement('div');
@@ -308,20 +362,48 @@ function buildHouse() {
   neighbourGroup.add(edges);
 }
 
-// ------------------------------------------------------------------ design studio (front balcony)
+// ------------------------------------------------------------------ design studio
+// FRONT designs. All use the same rule: the existing 3'9" slab stays, new work may reach 5'0" out.
+const FRONTS = {
+  A: { name: 'Keep existing edge' },
+  B: { name: 'Full width to 5\'0"', full: true },
+  C: { name: 'Central box bay', bay: true, pillar: 'square' },
+  D: { name: 'Bay + portal frame', bay: true, pillar: 'square', portal: true },
+  E: { name: 'Modern box portico', bay: true, pillar: 'woodbox', fascia: 'box', finish: 'wood', parapet: 'glass' },
+  F: { name: 'Classical portico', bay: true, pillar: 'classical', fascia: 'entablature', finish: 'white', parapet: 'railV' },
+  G: { name: 'Indian ornate portico', bay: true, pillar: 'ornate', fascia: 'frieze', finish: 'cream', parapet: 'railV', arch: true },
+  H: { name: 'Stone frame (floating box)', bay: true, pillar: 'fin', frame: true, finish: 'stone', parapet: 'glass' },
+};
+// ROOF (upper terrace on the first-floor roof) designs
+const ROOFS = {
+  R0: 'Bare roof (as now)',
+  R1: 'Safe terrace: parapet + railing',
+  R2: 'Pergola deck + planters',
+  R3: 'Polycarbonate shade + water tank',
+  R4: 'Solar canopy + water tank',
+};
 const design = new THREE.Group(); root.add(design);
+const roofDesign = new THREE.Group(); root.add(roofDesign);
+const ROOF_TOP = 2 * FTF;                                       // top of first-floor roof slab
+const RS = { x1: FFBLOCK.x1 - 6, x2: FFBLOCK.x2 + 6, y1: FFBLOCK.y1 - 6, y2: FFBLOCK.y2 + 6 };   // roof slab with edge projection
 
 function parapet(x1, y1, x2, y2, base, parent) {
   const long = (x2 - x1) >= (y2 - y1);
   const style = state.parapet;
-  const wallTop = style === 'solid' ? 36 : 18;
+  const wallTop = style === 'solid' ? 36 : style === 'glass' ? 6 : 18;
   box(x1, x2, y1, y2, base, base + wallTop, mat.wall, parent);
   box(x1 - 1, x2 + 1, y1 - 1, y2 + 1, base + wallTop, base + wallTop + 2, mat.trim, parent);   // coping
   if (style === 'solid') return;
   const cy1 = (y1 + y2) / 2 - 0.75, cy2 = cy1 + 1.5, cx1 = (x1 + x2) / 2 - 0.75, cx2 = cx1 + 1.5;
   const len = long ? x2 - x1 : y2 - y1, s = long ? x1 : y1;
-  const seg = (a1, a2, h1, h2) => long ? box(a1, a2, cy1, cy2, h1, h2, mat.grill, parent)
-                                       : box(cx1, cx2, a1, a2, h1, h2, mat.grill, parent);
+  const seg = (a1, a2, h1, h2, m = mat.grill, t1, t2) => long ? box(a1, a2, t1 ?? cy1, t2 ?? cy2, h1, h2, m, parent)
+                                                              : box(t1 ?? cx1, t2 ?? cx2, a1, a2, h1, h2, m, parent);
+  if (style === 'glass') {
+    const g1 = long ? (y1 + y2) / 2 - 0.3 : (x1 + x2) / 2 - 0.3;
+    seg(s + 1, s + len - 1, base + wallTop + 2, base + 40, mat.glassPanel, g1, g1 + 0.6);
+    seg(s, s + len, base + 40, base + 42, mat.steel);
+    return;
+  }
   seg(s, s + len, base + 36, base + 38);                           // top rail
   if (style === 'railV') {
     for (let a = s + 4; a < s + len - 1; a += 4.5) seg(a - 0.4, a + 0.4, base + wallTop + 2, base + 36);
@@ -332,63 +414,238 @@ function parapet(x1, y1, x2, y2, base, parent) {
   }
 }
 
-function pillar(x1, y1, size, top, parent) {
-  const p = box(x1, x1 + size, y1, y1 + size, -PLINTH, top, mat.pillar, parent);
-  box(x1 - 1.5, x1 + size + 1.5, y1 - 1.5, y1 + size + 1.5, -PLINTH, -PLINTH + 10, mat.pillar, parent);  // base
-  return p;
+// ---- pillars in different styles. (x, y) = north-west corner of a P x P pillar.
+function pillar(style, x, y, P, top, parent, side = 1) {
+  const cx = x + P / 2, cy = y + P / 2, g = -PLINTH;
+  switch (style) {
+    case 'woodbox':      // image 1: wood-clad square shaft, white plinth block and capital
+      box(x, x + P, y, y + P, g, top, mat.pillar, parent);
+      for (let a = 2; a < P - 1; a += 2.5) box(x + a - 0.25, x + a + 0.25, y - 0.3, y, g + 30, top - 10, mat.pergola, parent); // grooves
+      box(x - 3, x + P + 3, y - 3, y + P + 3, g, g + 30, mat.accent, parent);
+      box(x - 2, x + P + 2, y - 2, y + P + 2, top - 10, top, mat.accent, parent);
+      break;
+    case 'classical': {  // image 2: round fluted column, square plinth, flared capital
+      const r = P * 0.48;
+      box(x - 4, x + P + 4, y - 4, y + P + 4, g, g + 22, mat.accent, parent);
+      cyl(cx, cy, r * 1.25, r * 1.35, g + 22, g + 28, mat.accent, parent);
+      cyl(cx, cy, r * 0.9, r, g + 28, top - 14, mat.pillarFlat, parent, 20);
+      cyl(cx, cy, r * 1.45, r * 0.95, top - 14, top - 5, mat.accent, parent);
+      box(x - 4, x + P + 4, y - 4, y + P + 4, top - 5, top, mat.accent, parent);
+      break;
+    }
+    case 'ornate': {     // image 3: square shaft, stepped base + capital, carved band, brackets
+      box(x, x + P, y, y + P, g, top, mat.pillar, parent);
+      box(x - 5, x + P + 5, y - 5, y + P + 5, g, g + 18, mat.accent, parent);
+      box(x - 2, x + P + 2, y - 2, y + P + 2, g + 18, g + 26, mat.accent, parent);
+      box(x - 1.5, x + P + 1.5, y - 1.5, y + P + 1.5, g + 70, g + 76, mat.accent, parent);
+      box(x - 2, x + P + 2, y - 2, y + P + 2, top - 18, top - 9, mat.accent, parent);
+      box(x - 5, x + P + 5, y - 5, y + P + 5, top - 9, top, mat.accent, parent);
+      // bracket (corbel) towards the bay centre
+      const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(16, 0); s.lineTo(0, -18); s.lineTo(0, 0);
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: P * 0.6, bevelEnabled: false }), mat.accent);
+      m.position.set(side > 0 ? x + P : x, top, cy - P * 0.3);
+      m.scale.x = side; m.castShadow = true; parent.add(m);
+      break;
+    }
+    case 'fin':          // full-height stone fin, handled by the frame
+      break;
+    default:             // plain square pillar with base
+      box(x, x + P, y, y + P, g, top, mat.pillar, parent);
+      box(x - 1.5, x + P + 1.5, y - 1.5, y + P + 1.5, g, g + 10, mat.pillar, parent);
+  }
 }
 
 function frontEdge() {
-  // returns depth of the front edge at a given x, plus the bay range
   const b1 = CX - state.bay / 2, b2 = CX + state.bay / 2;
-  switch (state.option) {
-    case 'A': return { segs: [[0, W, EXIST]], bay: null };
-    case 'B': return { segs: [[0, W, MAXP]], bay: null };
-    default:  return { segs: [[0, b1, EXIST], [b1, b2, MAXP], [b2, W, EXIST]], bay: [b1, b2] };
-  }
+  const f = FRONTS[state.option];
+  if (f.full) return { segs: [[0, W, MAXP]], bay: null };
+  if (!f.bay) return { segs: [[0, W, EXIST]], bay: null };
+  return { segs: [[0, b1, EXIST], [b1, b2, MAXP], [b2, W, EXIST]], bay: [b1, b2] };
 }
 
 function buildDesign() {
   design.clear();
+  const f = FRONTS[state.option];
   const base = FTF, P = state.pillar, T = 4.5;
   const { segs, bay } = frontEdge();
+  const solidUpstand = f.fascia === 'box' || f.fascia === 'frieze';   // the fascia itself is the bay's parapet
 
-  // new slab (1'3" added beyond the existing 3'9")
-  if (state.option === 'B') box(0, W, -MAXP, -EXIST, H, FTF, mat.newSlab, design);
+  // new slab (only 1'3" beyond the existing 3'9" edge)
+  if (f.full) box(0, W, -MAXP, -EXIST, H, FTF, mat.newSlab, design);
   if (bay) box(bay[0], bay[1], -MAXP, -EXIST, H, FTF, mat.newSlab, design);
-  // fascia band along the front edge (gives the slab edge a deliberate boxy line)
+  // thin edge band along every front edge
   segs.forEach(([a, b, d]) => box(a - 0.6, b + 0.6, -d - 0.6, -d + 4.5, H - 6, FTF - 0.3, mat.trim, design));
 
-  // parapets: front edge (stepped if a bay), bay returns, sides, east terrace
-  segs.forEach(([a, b, d]) => parapet(a, -d, b, -d + T, base, design));
-  if (bay) {
+  // parapets
+  segs.forEach(([a, b, d]) => { if (!(bay && d === MAXP && solidUpstand)) parapet(a, -d, b, -d + T, base, design); });
+  if (bay && !solidUpstand) {
     parapet(bay[0], -MAXP, bay[0] + T, -EXIST, base, design);
     parapet(bay[1] - T, -MAXP, bay[1], -EXIST, base, design);
   }
   const dL = segs[0][2], dR = segs[segs.length - 1][2];
-  parapet(0, -dL + T, T, FFBLOCK.y1, base, design);                // west end of front terrace
-  parapet(W - T, -dR + T, W, D, base, design);                      // east side
-  parapet(FFBLOCK.x2, D - T, W - T, D, base, design);               // south end of east terrace
+  parapet(0, -dL + T, T, FFBLOCK.y1, base, design);
+  parapet(W - T, -dR + T, W, D, base, design);
+  parapet(FFBLOCK.x2, D - T, W - T, D, base, design);
 
-  // pillars
-  const top = FTF + 38;
-  if (state.option === 'B') {
-    [[0, -MAXP], [W - P, -MAXP], [CX - 84, -MAXP], [CX + 84 - P, -MAXP]].forEach(([x, y]) => pillar(x, y, P, top, design));
-  }
+  // full-width option: four plain pillars
+  if (f.full) [[0, -MAXP], [W - P, -MAXP], [CX - 84, -MAXP], [CX + 84 - P, -MAXP]]
+    .forEach(([x, y]) => pillar('square', x, y, P, FTF + 38, design));
+
   if (bay) {
-    const tall = state.option === 'D' ? 2 * FTF + 8 : top;
-    pillar(bay[0], -MAXP, P, tall, design);
-    pillar(bay[1] - P, -MAXP, P, tall, design);
-    if (state.option === 'D') {
-      // portal frame: beam across the bay + returns back to the first-floor wall + pergola slats
-      box(bay[0], bay[1], -MAXP, -MAXP + P, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design);
-      [bay[0], bay[1] - P].forEach(x => box(x, x + P, -MAXP, FFBLOCK.y1, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design));
+    const [b1, b2] = bay;
+    const pTop = { box: H - 14, entablature: H - 18, frieze: H - 20 }[f.fascia]
+      ?? (f.portal ? 2 * FTF + 8 : FTF + 38);
+    pillar(f.pillar, b1, -MAXP, P, pTop, design, 1);
+    pillar(f.pillar, b2 - P, -MAXP, P, pTop, design, -1);
+
+    if (f.fascia === 'box') {            // E: deep white box with LED strip (image 1)
+      box(b1 - 2, b2 + 2, -MAXP - 2, -MAXP + 8, H - 14, FTF + 36, mat.accent, design);
+      [[b1 - 2, b1 + 8], [b2 - 8, b2 + 2]].forEach(([a, b]) => box(a, b, -MAXP - 2, -EXIST, H - 14, FTF + 36, mat.accent, design));
+      box(b1 - 3, b2 + 3, -MAXP - 3, -EXIST, FTF + 36, FTF + 38, mat.trim, design);
+      box(b1 + 8, b2 - 8, -MAXP + 8, -MAXP + 9.5, H - 13.5, H - 12, mat.led, design);
+    }
+    if (f.fascia === 'entablature') {    // F: classical beam, dentils, cornice (image 2)
+      box(b1 - 3, b2 + 3, -MAXP - 3, -MAXP + P, H - 18, FTF, mat.accent, design);
+      [[b1 - 3, b1 + P], [b2 - P, b2 + 3]].forEach(([a, b]) => box(a, b, -MAXP - 3, -EXIST, H - 18, FTF, mat.accent, design));
+      box(b1 - 3.5, b2 + 3.5, -MAXP - 3.5, -MAXP - 3, H - 18, H - 14, mat.trim, design);
+      for (let x = b1 - 1; x < b2 + 1; x += 5) box(x, x + 2.5, -MAXP - 5.5, -MAXP - 3, FTF - 6, FTF - 2, mat.accent, design);
+      box(b1 - 7, b2 + 7, -MAXP - 7, -EXIST, FTF, FTF + 5, mat.accent, design);
+    }
+    if (f.fascia === 'frieze') {         // G: carved band with rosettes, cornice, warm LED (image 3)
+      box(b1 - 3, b2 + 3, -MAXP - 3, -MAXP + P, H - 20, FTF + 30, mat.cream, design);
+      [[b1 - 3, b1 + P], [b2 - P, b2 + 3]].forEach(([a, b]) => box(a, b, -MAXP - 3, -EXIST, H - 20, FTF + 30, mat.cream, design));
+      box(b1 - 5, b2 + 5, -MAXP - 5, -MAXP - 3, H - 22, H - 17, mat.accent, design);
+      box(b1 - 6, b2 + 6, -MAXP - 6, -EXIST, FTF + 30, FTF + 35, mat.accent, design);
+      box(b1 - 4, b2 + 4, -MAXP - 4, -MAXP - 3, FTF + 20, FTF + 23, mat.accent, design);
+      for (let x = b1 + 8; x < b2 - 4; x += 11) {
+        const r = cyl(x, -MAXP - 4, 3.2, 3.2, 0, 2, mat.accent, design, 12);
+        r.rotation.x = Math.PI / 2; r.position.set(x, (H + FTF + 10) / 2, -MAXP - 4);
+      }
+      box(b1 + P, b2 - P, -MAXP + P, -MAXP + P + 1.5, H - 19.5, H - 18, mat.led, design);
+    }
+    if (f.arch) {                        // G: arched frame in front of the main door
+      const door = model.floors[0].openings.find(o => o.id === 'D');
+      const xa = door.start - 8, xb = door.start + door.width + 8, R = (xb - xa) / 2, xc = (xa + xb) / 2, spring = 70;
+      box(xa, xa + 9, -11, -2, 0, spring, mat.cream, design);
+      box(xb - 9, xb, -11, -2, 0, spring, mat.cream, design);
+      const s = new THREE.Shape(); s.absarc(0, 0, R, 0, Math.PI, false); s.absarc(0, 0, R - 9, Math.PI, 0, true);
+      const a = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 9, bevelEnabled: false, curveSegments: 24 }), mat.cream);
+      a.position.set(xc, spring, -11); a.castShadow = true; design.add(a);
+    }
+    if (f.portal) {                      // D: pillars to roof, beam + pergola back to the first-floor wall
+      box(b1, b2, -MAXP, -MAXP + P, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design);
+      [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, FFBLOCK.y1, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design));
       for (let y = -MAXP + P + 8; y < FFBLOCK.y1 - 4; y += 14)
-        box(bay[0] + P, bay[1] - P, y, y + 3, 2 * FTF, 2 * FTF + 6, mat.pergola, design);
+        box(b1 + P, b2 - P, y, y + 3, 2 * FTF, 2 * FTF + 6, mat.pergola, design);
+    }
+    if (f.frame) {                       // H: full-height stone fins + floating roof slab over the bay
+      const fw = Math.max(15, P + 3);
+      box(b1, b1 + fw, -MAXP, -MAXP + 20, -PLINTH, ROOF_TOP + 14, mat.pillar, design);
+      box(b2 - fw, b2, -MAXP, -MAXP + 20, -PLINTH, ROOF_TOP + 14, mat.pillar, design);
+      box(b1, b2, -MAXP, RS.y1, ROOF_TOP - 2, ROOF_TOP + 14, mat.pillar, design);
+      box(b1 + fw, b2 - fw, -MAXP + 4, -MAXP + 5.5, ROOF_TOP - 3.5, ROOF_TOP - 2, mat.led, design);
     }
   }
   buildLabels(bay);
   updateFacts(bay);
+}
+
+// ---- roof (upper terrace) designs
+function roofParapet(parent) {
+  const t = 4.5;
+  parapet(RS.x1, RS.y1, RS.x2, RS.y1 + t, ROOF_TOP, parent);
+  parapet(RS.x1, RS.y2 - t, RS.x2, RS.y2, ROOF_TOP, parent);
+  parapet(RS.x1, RS.y1 + t, RS.x1 + t, RS.y2 - t, ROOF_TOP, parent);
+  if (state.access === 'none') parapet(RS.x2 - t, RS.y1 + t, RS.x2, RS.y2 - t, ROOF_TOP, parent);
+  else {                                   // leave a 3'6" gap on the east edge where the stair arrives
+    const [g1, g2] = state.access === 'spiral' ? [80, 122] : [84, 126];
+    parapet(RS.x2 - t, RS.y1 + t, RS.x2, g1, ROOF_TOP, parent);
+    parapet(RS.x2 - t, g2, RS.x2, RS.y2 - t, ROOF_TOP, parent);
+  }
+}
+
+function waterTank(x, y, parent) {
+  box(x - 28, x + 28, y - 28, y + 28, ROOF_TOP, ROOF_TOP + 18, mat.slab, parent);
+  cyl(x, y, 22, 23, ROOF_TOP + 18, ROOF_TOP + 66, mat.tank, parent);
+  cyl(x, y, 8, 8, ROOF_TOP + 66, ROOF_TOP + 69, mat.tank, parent);
+}
+
+function buildRoof() {
+  roofDesign.clear();
+  const rd = state.roofDesign, top = ROOF_TOP;
+  if (rd !== 'R0' || state.access !== 'none') roofParapet(roofDesign);
+
+  if (rd === 'R2') {                      // pergola deck, planters, bench
+    box(12, 276, 66, 236, top, top + 0.8, mat.deck, roofDesign);
+    const px = [24, 168], py = [76, 222];
+    px.forEach(x => py.forEach(y => box(x - 3, x + 3, y - 3, y + 3, top, top + 96, mat.pergola, roofDesign)));
+    py.forEach(y => box(16, 176, y - 3, y + 3, top + 90, top + 98, mat.pergola, roofDesign));
+    for (let x = 22; x < 172; x += 12) box(x, x + 2.5, 68, 230, top + 98, top + 103, mat.pergola, roofDesign);
+    box(60, 130, 196, 214, top, top + 16, mat.pergola, roofDesign);
+    for (let x = 190; x < 272; x += 28) {
+      box(x, x + 22, 60, 78, top, top + 18, mat.planter, roofDesign);
+      box(x + 2, x + 20, 62, 76, top + 18, top + 32, mat.plant, roofDesign);
+    }
+    for (let y = 110; y < 230; y += 30) {
+      box(268, 286, y, y + 22, top, top + 18, mat.planter, roofDesign);
+      box(270, 284, y + 2, y + 20, top + 18, top + 30, mat.plant, roofDesign);
+    }
+  }
+  if (rd === 'R3') {                      // steel frame + polycarbonate shade, water tank
+    const xs = [18, 108, 198], ys = [70, 232];
+    xs.forEach(x => ys.forEach(y => box(x - 2, x + 2, y - 2, y + 2, top, top + 100, mat.steel, roofDesign)));
+    ys.forEach(y => box(14, 202, y - 2, y + 2, top + 100, top + 104, mat.steel, roofDesign));
+    xs.forEach(x => box(x - 1.5, x + 1.5, 66, 236, top + 104, top + 107, mat.steel, roofDesign));
+    box(10, 206, 62, 240, top + 107, top + 107.6, mat.poly, roofDesign);
+    waterTank(250, 210, roofDesign);
+  }
+  if (rd === 'R4') {                      // raised solar canopy, panels tilted to the south
+    const xs = [16, 146, 276], ys = [72, 230];
+    xs.forEach(x => ys.forEach(y => box(x - 2.5, x + 2.5, y - 2.5, y + 2.5, top, top + 90 + (y < 150 ? 14 : 0), mat.steel, roofDesign)));
+    const tilt = THREE.MathUtils.degToRad(12);
+    for (let row = 0; row < 2; row++) {
+      for (let x = 12; x + 40 <= 282; x += 42) {
+        const y0 = 70 + row * 80, m = new THREE.Mesh(new THREE.BoxGeometry(40, 1.5, 78), mat.pv);
+        m.position.set(x + 20, top + 98 + (row === 0 ? 7 : -1), y0 + 39);
+        m.rotation.x = tilt; m.castShadow = true; roofDesign.add(m);
+      }
+    }
+    waterTank(250, 210, roofDesign);
+  }
+
+  if (state.access === 'straight') {      // straight steel stair on the east terrace, along the first-floor wall
+    const x1 = 293, x2 = 329, n = 15, rise = FTF / n, y0 = 238;
+    for (let i = 0; i < n - 1; i++) {
+      const t = FTF + (i + 1) * rise, ya = y0 - (i + 1) * 10;
+      box(x1 + 2, x2 - 2, ya, ya + 10, t - 1.5, t, mat.steel, roofDesign);
+    }
+    box(RS.x2 - 1, x2, 84, y0 - (n - 1) * 10, ROOF_TOP - 2, ROOF_TOP, mat.steel, roofDesign);   // landing
+    [x1 + 1, x2 - 1].forEach(x => bar([x, y0, FTF], [x, y0 - (n - 1) * 10, ROOF_TOP - 2], 1.8, mat.steel, roofDesign));
+    bar([x2 - 1, y0, FTF + 36], [x2 - 1, y0 - (n - 1) * 10, ROOF_TOP + 36], 1, mat.steel, roofDesign);
+    for (let i = 0; i <= n - 1; i += 2) {
+      const ya = y0 - i * 10, t = FTF + i * rise;
+      bar([x2 - 1, ya, t], [x2 - 1, ya, t + 36], 0.5, mat.steel, roofDesign);
+    }
+  }
+  if (state.access === 'spiral') {        // 5'0" spiral stair at the corner of the east terrace
+    const cx = 340, cy = 101, R = 30, n = 16, rise = FTF / n, step = (2 * Math.PI) / n;
+    cyl(cx, cy, 2.5, 2.5, FTF, ROOF_TOP + 38, mat.steel, roofDesign, 10);
+    const pts = [];
+    for (let i = 0; i < n - 1; i++) {
+      const th = Math.PI - (n - 1 - i) * step, t = FTF + (i + 1) * rise;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(R, 1.5, 12), mat.steel);
+      m.position.set(cx + Math.cos(th) * R / 2, t - 0.75, cy + Math.sin(th) * R / 2);
+      m.rotation.y = -th; m.castShadow = true; roofDesign.add(m);
+      const ox = cx + Math.cos(th) * (R - 1), oy = cy + Math.sin(th) * (R - 1);
+      bar([ox, oy, t], [ox, oy, t + 34], 0.5, mat.steel, roofDesign);
+      pts.push(new THREE.Vector3(ox, t + 34, oy));
+    }
+    pts.push(new THREE.Vector3(cx - R + 1, ROOF_TOP + 34, cy));
+    const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 1, 6, false), mat.steel);
+    roofDesign.add(rail);
+    box(RS.x2 - 1, cx + 6, cy - 14, cy + 14, ROOF_TOP - 2, ROOF_TOP, mat.steel, roofDesign);   // top landing
+  }
+  updateFacts(frontEdge().bay);
 }
 
 function fmt(inches) {
@@ -401,7 +658,7 @@ function fmt(inches) {
 function buildLabels(bay) {
   labelGroup.clear();
   if (!state.labels) return;
-  const depth = state.option === 'A' ? EXIST : MAXP;
+  const f = FRONTS[state.option], depth = (f.bay || f.full) ? MAXP : EXIST;
   label(`Open yard: ${fmt(-NEIGH[3])} to neighbour`, W + 30, 0, NEIGH[3] / 2, labelGroup);
   label(`Clear after balcony: ${fmt(-NEIGH[3] - depth)}`, CX, 0, (NEIGH[3] - depth) / 2, labelGroup, 'muted');
   label(`Front terrace ${fmt(56 + depth)} deep`, 40, FTF + 50, (56 - depth) / 2, labelGroup);
@@ -410,13 +667,16 @@ function buildLabels(bay) {
 }
 
 function updateFacts(bay) {
-  const depth = state.option === 'A' ? EXIST : MAXP;
+  const f = FRONTS[state.option], depth = (f.bay || f.full) ? MAXP : EXIST;
   const rows = [
+    ['Front design', `${state.option} · ${f.name}`],
     ['Front terrace depth', `4'8" + ${fmt(depth)} = ${fmt(56 + depth)}`],
-    ['New slab added', state.option === 'A' ? 'none' : `${fmt(MAXP - EXIST)} deep × ${state.option === 'B' ? fmt(W) : fmt(bay[1] - bay[0])}`],
+    ['New slab added', !(f.bay || f.full) ? 'none' : `${fmt(MAXP - EXIST)} deep × ${f.full ? fmt(W) : fmt(bay[1] - bay[0])}`],
     ['Clear yard in front', fmt(-NEIGH[3] - depth)],
   ];
   if (bay) rows.push(['Bay position', `${fmt(bay[0])} to ${fmt(bay[1])} from west corner`]);
+  rows.push(['Upper terrace', `${fmt(FFBLOCK.x2 - FFBLOCK.x1)} × ${fmt(FFBLOCK.y2 - FFBLOCK.y1)} · ${ROOFS[state.roofDesign]}`]);
+  rows.push(['Roof access', { none: 'none yet', straight: `straight steel stair, 3'0" wide, 15 risers of 8"`, spiral: `spiral stair, 5'0" dia, 16 risers of 7½"` }[state.access]]);
   document.getElementById('facts').innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
 }
 
@@ -435,6 +695,7 @@ const VIEWS = {
   corner:  { pos: [50, 22, -40], target: [CX * IN, 8, 4], fov: 50 },
   aerial:  { pos: [-22, 52, -40], target: [CX * IN, 6, 8], fov: 50 },
   balcony: { pos: [CX * IN + 2, FTF * IN + 5.3, 4.0], target: [CX * IN, FTF * IN + 3, -6], fov: 75 },
+  roof:    { pos: [54, 44, 42], target: [13, 20, 12], fov: 50 },
 };
 function setView(name) {
   const v = VIEWS[name] || VIEWS.corner;
@@ -447,10 +708,10 @@ function setView(name) {
 
 function applyToggles() {
   neighbourGroup.visible = state.neighbour;
-  roofGroup.visible = state.roof;
+  roofGroup.visible = state.roof; roofDesign.visible = state.roof;
   mat.wall.color.setHex(FACADES[state.facade]);
-  mat.pillar.color.setHex(PILLARS[state.pillarFinish]);
-  document.getElementById('bayRow').style.display = 'CD'.includes(state.option) ? '' : 'none';
+  mat.pillar.color.setHex(PILLARS[state.pillarFinish]); mat.pillarFlat.color.setHex(PILLARS[state.pillarFinish]);
+  document.getElementById('bayRow').style.display = FRONTS[state.option].bay ? '' : 'none';
   setSun();
 }
 
@@ -458,13 +719,26 @@ function bindUI() {
   const on = (id, ev, fn) => document.getElementById(id).addEventListener(ev, fn);
   document.querySelectorAll('input[name=opt]').forEach(r => {
     r.checked = r.value === state.option;
-    r.addEventListener('change', () => { state.option = r.value; applyToggles(); buildDesign(); });
+    r.addEventListener('change', () => {
+      state.option = r.value;
+      const f = FRONTS[r.value];            // each portico style comes with its matching finish + railing
+      if (f.finish) { state.pillarFinish = f.finish; document.getElementById('pillarFinish').value = f.finish; }
+      if (f.parapet) { state.parapet = f.parapet; document.getElementById('parapet').value = f.parapet; }
+      applyToggles(); buildDesign(); buildRoof();
+    });
   });
+  document.querySelectorAll('input[name=roof]').forEach(r => {
+    r.checked = r.value === state.roofDesign;
+    r.addEventListener('change', () => { state.roofDesign = r.value; buildRoof(); });
+  });
+  const ac = document.getElementById('access'); ac.value = state.access;
+  ac.addEventListener('change', () => { state.access = ac.value; buildRoof(); });
   const sel = (id, key, num, rebuild) => {
     const el = document.getElementById(id); el.value = String(state[key]);
     el.addEventListener('change', () => { state[key] = num ? +el.value : el.value; applyToggles(); if (rebuild) buildDesign(); });
   };
-  sel('bay', 'bay', true, true); sel('parapet', 'parapet', false, true); sel('pillar', 'pillar', true, true);
+  sel('bay', 'bay', true, true); sel('parapet', 'parapet', false, true);
+  document.getElementById('parapet').addEventListener('change', buildRoof); sel('pillar', 'pillar', true, true);
   sel('pillarFinish', 'pillarFinish', false, false); sel('facade', 'facade', false, false);
   const hr = document.getElementById('hour'); hr.value = state.hour;
   const hl = document.getElementById('hourLbl');
@@ -488,6 +762,7 @@ buildHouse();
 bindUI();
 applyToggles();
 buildDesign();
+buildRoof();
 setView(params.get('view') || 'corner');
 addEventListener('resize', resize); resize();
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); });

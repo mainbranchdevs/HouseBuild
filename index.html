@@ -30,11 +30,17 @@
   #facts div { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
   #facts span { color: var(--muted); } #facts b { text-align: right; }
   .note { font-size: 12px; color: var(--accent); margin-top: 14px; }
+  #cycler { position: fixed; bottom: 14px; left: calc(330px + (100vw - 330px) / 2); transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px;
+    background: #fffffff2; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; box-shadow: 0 2px 8px #0002; max-width: calc(100vw - 20px); }
+  body.collapsed #cycler { left: 50%; }
+  #cycler button { font: inherit; font-size: 16px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--ink); color: #fff; cursor: pointer; }
+  #cycler span { font-weight: 600; min-width: 150px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #panelToggle { position: fixed; top: 10px; left: 340px; z-index: 5; padding: 5px 10px; }
   body.collapsed #panelToggle { left: 10px; }
   @media (max-width: 700px) {
     #app { inset: 45vh 0 0 0; } aside { width: 100%; bottom: auto; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
     #panelToggle { display: none; }
+    #cycler { left: 50%; }
   }
 </style>
 <script type="importmap">
@@ -68,6 +74,12 @@
   <label class="opt"><input type="radio" name="opt" value="F"><b>F · Classical portico</b><small>Round fluted columns, beam with dentils and cornice. (Your image 2)</small></label>
   <label class="opt"><input type="radio" name="opt" value="G"><b>G · Indian ornate portico</b><small>Square carved pillars with brackets, rosette band, arch at the door. (Your image 3)</small></label>
   <label class="opt"><input type="radio" name="opt" value="H"><b>H · Stone frame · floating box</b><small>Full-height stone fins and a roof slab over the bay, glass railing.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="I"><b>I · Jaali screen portico</b><small>Terracotta lattice screens at the sides and as the balcony guard. Privacy with air flow.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="J"><b>J · Twin-pillar contemporary</b><small>Pairs of slim dark pillars tied with wood bands. Light and modern.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="K"><b>K · Tiled roof portico</b><small>Wooden posts on stone bases, sloping clay-tile roof over the balcony. Traditional.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="L"><b>L · Grand arch portico</b><small>One wide arch between two round columns, baluster railing above.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="M"><b>M · Louver screen + flat canopy</b><small>Tall wood fins screen the window side; slim flat roof covers the balcony.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="N"><b>N · Exposed brick + planters</b><small>Brick pillars, planter trough as the balcony edge, planters at the base.</small></label>
   <div class="row" id="bayRow"><span>Bay width</span>
     <select id="bay">
       <option value="144">12'0"</option>
@@ -97,12 +109,13 @@
       <option value="railV">1'6" wall + vertical railing</option>
       <option value="railH">1'6" wall + horizontal rails</option>
       <option value="glass">6" curb + glass railing</option>
+      <option value="baluster">Classic balusters</option>
     </select></div>
   <div class="row"><span>Pillar size</span>
     <select id="pillar"><option value="9">9" × 9"</option><option value="12">12" × 12"</option><option value="15">15" × 15"</option></select></div>
   <div class="row"><span>Pillar finish</span>
     <select id="pillarFinish">
-      <option value="plaster">Plaster grey</option><option value="white">White</option><option value="cream">Cream</option>
+      <option value="plaster">Plaster grey</option><option value="white">White</option><option value="cream">Cream</option><option value="brick">Exposed brick</option>
       <option value="terracotta">Terracotta</option><option value="stone">Dark stone</option><option value="wood">Wood tone</option>
     </select></div>
   <div class="row"><span>Wall colour</span>
@@ -121,6 +134,7 @@
 </aside>
 <button id="panelToggle">☰ Panel</button>
 <div id="app"></div>
+<div id="cycler"><button id="prevOpt" aria-label="Previous design">◀</button><span id="optName"></span><button id="nextOpt" aria-label="Next design">▶</button></div>
 <script>window.HOUSE_MODEL = {"meta": {"project": "Anijo House", "revision": "R0", "date": "2026-11-22", "status": "DRAFT - compiled from drawing fragments and site photos. Verify every dimension on site before building.", "units": "inches. Origin = north-west outer corner of ground floor. x runs east, y runs south.", "overall": {"eastWest": 387, "northSouth": 248}, "floorToFloor": 120, "slab": 5, "plinth": 18, "doorHead": 84, "outerWall": 9, "innerWall": 4.5, "sources": ["inputs/1-floor-plan-fragments/WhatsApp Image 2026-11-22 at 11.56.32 AM.jpeg  (architect's FIRST FLOOR PLAN, from 'RABINDRA BB 2.pdf')", "inputs/1-floor-plan-fragments/WhatsApp Image 2026-11-22 at 12.35.04 PM.jpeg  (ground floor redraw, marked 'AI-generated content')", "inputs/3-construction-photos-videos/*.jpeg  (north, east and west faces, first-floor terrace)"]}, "resolved": ["Stair is U-shaped (dog-legged) as per architect - confirmed by owner 2026-11-22.", "Stair room clear width about 7'11\" - confirmed by owner 2026-11-22.", "Ground-floor bedroom has a 5'0\" south window like the first floor - confirmed by owner 2026-11-22.", "Front (north) slab projection is 3'6\"-4'0\" today; drawn at 3'9\" - owner 2026-11-22.", "Proposed: balcony 5'0\" out x 6'0\" long, centred on main door + first hall window as a group, with pillars at its outer corners - owner 2026-11-22.", "Front open yard (ours) is 12'0\" from our front wall to the neighbouring building - owner 2026-11-22."], "site": {"neighbours": [{"rect": [-40, -200, 427, -144], "label": "NEIGHBOURING BUILDING (front face 12'0\" from our wall; width not measured)"}], "yards": [{"rect": [-40, -144, 427, 0], "label": "OPEN YARD (ours)", "labelAt": [-2, -85]}], "existing": [{"pts": [[0, 0], [0, -45], [387, -45], [387, 0]], "label": "EXISTING SLAB PROJECTION 3'9\" (3'6\"-4'0\")", "labelAt": [325, -22]}], "proposed": [{"pts": [[166, -45], [166, -60], [238, -60], [238, -45]], "label": "PROPOSED BALCONY 5'0\" x 6'0\"", "labelAt": [62, -72]}], "pillars": [[170.5, -55.5], [233.5, -55.5]], "dims": [{"a": [387, -144], "b": [387, 0], "off": 36}, {"a": [0, -45], "b": [0, 0], "off": -36}, {"a": [166, -60], "b": [238, -60], "off": -30, "text": "6'0\""}, {"a": [238, -60], "b": [238, 0], "off": 22, "text": "5'0\""}]}, "issues": [{"id": 4, "severity": "medium", "text": "Columns: only the 8 columns on the architect's first-floor plan are shown. Ground-floor-only columns (e.g. along the north hall wall and east wall, visible in photos) are not on any drawing. Need the structural/column layout or site measurements."}, {"id": 5, "severity": "low", "text": "Two column stubs on the north terrace edge and starter bars on the first-floor roof have no planned use yet. Decide in the design phase (pillars, pergola or future extension)."}, {"id": 6, "severity": "low", "text": "Overall size: AI redraw says 32'3 3/4\" x 20'8 1/4\", architect says 32'3\" x 20'8\". Model uses the architect's figures."}, {"id": 7, "severity": "low", "text": "Estimated from photos, need tape: hall windows (2 nos, 4'0\" assumed), kitchen east window (4'0\"), east side door position (7'0\" from north corner), terrace parapet height (3'0\"), plinth height (1'6\")."}, {"id": 9, "severity": "high", "text": "STRUCTURAL: the balcony grows from a 3'9\" cantilever to 5'0\" carried on new pillars. Pillar footings, size and how the new slab ties into the existing slab must be designed or approved by a structural engineer before work starts."}, {"id": 10, "severity": "low", "text": "Balcony is centred on the main door + first hall window taken together (owner's idea, since the door is off-centre): 13'10\" to 19'10\" from the west corner. That window position is estimated from photos, so measure it. Note the west pillar stands 5'0\" out in line with the east half of the main door; check the walking path. Pillar size drawn 9\" x 9\" (design phase will refine)."}, {"id": 8, "severity": "low", "text": "Upper terrace on the first-floor roof (24'2 1/4\" x 16'0\") has no access. An external stair/ladder location is to be decided (design phase)."}], "floors": [{"id": "GF", "name": "GROUND FLOOR PLAN", "level": 0, "walls": [{"id": "GF-N", "a": [0, 4.5], "b": [387, 4.5], "t": 9, "out": -1}, {"id": "GF-S", "a": [0, 243.5], "b": [387, 243.5], "t": 9, "out": 1}, {"id": "GF-W", "a": [4.5, 0], "b": [4.5, 248], "t": 9, "out": -1}, {"id": "GF-E", "a": [382.5, 0], "b": [382.5, 248], "t": 9, "out": 1}, {"id": "GF-TS", "a": [9, 71.25], "b": [133.5, 71.25], "t": 4.5, "note": "toilet south wall"}, {"id": "GF-TE", "a": [131.25, 9], "b": [131.25, 73.5], "t": 4.5, "note": "toilet east wall"}, {"id": "GF-HB", "a": [9, 116.75], "b": [181.5, 116.75], "t": 4.5, "note": "hall / bedroom"}, {"id": "GF-BS", "a": [181.5, 114.5], "b": [181.5, 239], "t": 9, "note": "bedroom / stair"}, {"id": "GF-SK", "a": [285.75, 114.5], "b": [285.75, 239], "t": 9, "note": "stair / kitchen"}, {"id": "GF-KN", "a": [285.75, 116.75], "b": [378, 116.75], "t": 4.5, "note": "kitchen north wall"}], "openings": [{"id": "D", "wall": "GF-N", "type": "door", "start": 134, "width": 60, "leaves": 2, "swing": 1, "height": 84, "label": "D", "note": "main double door"}, {"id": "W2a", "wall": "GF-N", "type": "window", "start": 222, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}, {"id": "W2b", "wall": "GF-N", "type": "window", "start": 306, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}, {"id": "Va", "wall": "GF-W", "type": "vent", "start": 18, "width": 22, "sill": 60, "height": 24, "label": "V"}, {"id": "Vb", "wall": "GF-W", "type": "vent", "start": 80, "width": 22, "sill": 60, "height": 24, "label": "V"}, {"id": "Wgb", "wall": "GF-W", "type": "window", "start": 144, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Wgs", "wall": "GF-S", "type": "window", "start": 67, "width": 60, "sill": 36, "height": 48, "label": "W", "note": "confirmed by owner: same as first-floor bedroom south window"}, {"id": "D2t", "wall": "GF-TS", "type": "door", "start": 86, "width": 30, "swing": -1, "hinge": "start", "height": 84, "label": "D2"}, {"id": "D1g", "wall": "GF-HB", "type": "door", "start": 140, "width": 36, "swing": 1, "hinge": "end", "height": 84, "label": "D1"}, {"id": "D2k", "wall": "GF-KN", "type": "door", "start": 300, "width": 30, "swing": 1, "hinge": "start", "height": 84, "label": "D2"}, {"id": "D2e", "wall": "GF-E", "type": "door", "start": 84, "width": 30, "swing": -1, "hinge": "start", "height": 84, "label": "D2", "estimated": true}, {"id": "W2k", "wall": "GF-E", "type": "window", "start": 156, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}], "rooms": [{"name": "TOILET", "rect": [9, 9, 129, 69]}, {"name": "WASH", "rect": [9, 73.5, 129, 114.5], "noSize": true}, {"name": "HALL / LIVING", "rect": [133.5, 9, 378, 114.5], "labelAt": [256, 66]}, {"name": "BED ROOM", "rect": [9, 119, 177, 239]}, {"name": "STAIR", "rect": [186, 119, 281.25, 239], "labelAt": [233.6, 214], "small": true}, {"name": "KITCHEN", "rect": [290.25, 119, 378, 239], "labelAt": [322, 170]}], "stairs": {"flights": [{"rect": [243.25, 119, 281.25, 199], "dir": "S", "treads": 8, "label": "UP", "style": "solid"}, {"rect": [186, 119, 224, 199], "dir": "N", "treads": 8, "style": "dashed"}], "landing": [186, 199, 281.25, 239]}, "columns": [[4.5, 4.5], [107, 4.5], [4.5, 116.75], [181.5, 116.75], [285.75, 116.75], [4.5, 243.5], [181.5, 243.5], [285.75, 243.5]], "fixtures": [{"type": "wc", "rect": [14, 12, 42, 40]}, {"type": "basin", "rect": [9, 80, 27, 100]}, {"type": "platform", "rect": [354, 119, 378, 239]}, {"type": "platform", "rect": [290.25, 215, 354, 239]}, {"type": "sink", "rect": [356, 140, 376, 162]}, {"type": "stove", "rect": [300, 217, 330, 237]}], "labels": [{"at": [164, 50], "text": "ENTRANCE", "size": 9}], "dims": [{"a": [0, 0], "b": [134, 0], "off": -118}, {"a": [134, 0], "b": [194, 0], "off": -118}, {"a": [194, 0], "b": [387, 0], "off": -118}, {"a": [0, 248], "b": [9, 248], "off": 36, "tiny": true}, {"a": [9, 248], "b": [177, 248], "off": 36}, {"a": [177, 248], "b": [186, 248], "off": 36, "tiny": true}, {"a": [186, 248], "b": [281.25, 248], "off": 36}, {"a": [281.25, 248], "b": [290.25, 248], "off": 36, "tiny": true}, {"a": [290.25, 248], "b": [378, 248], "off": 36}, {"a": [378, 248], "b": [387, 248], "off": 36, "tiny": true}, {"a": [0, 248], "b": [387, 248], "off": 68}, {"a": [0, 0], "b": [0, 9], "off": -36, "tiny": true}, {"a": [0, 9], "b": [0, 69], "off": -36}, {"a": [0, 69], "b": [0, 114.5], "off": -36}, {"a": [0, 114.5], "b": [0, 119], "off": -36, "tiny": true}, {"a": [0, 119], "b": [0, 239], "off": -36}, {"a": [0, 239], "b": [0, 248], "off": -36, "tiny": true}, {"a": [0, 0], "b": [0, 248], "off": -68}, {"a": [387, 0], "b": [387, 84], "off": 36}, {"a": [387, 84], "b": [387, 114], "off": 36}, {"a": [387, 114], "b": [387, 248], "off": 36}, {"a": [387, 0], "b": [387, 248], "off": 68}]}, {"id": "FF", "name": "FIRST FLOOR PLAN", "level": 120, "terraces": [{"name": "OPEN TERRACE", "sub": "on ground-floor roof", "pts": [[0, 0], [387, 0], [387, 248], [290.25, 248], [290.25, 56], [0, 56]], "labelAt": [338, 150]}], "parapets": [{"a": [0, 2.25], "b": [387, 2.25], "t": 4.5}, {"a": [384.75, 0], "b": [384.75, 248], "t": 4.5}, {"a": [290.25, 245.75], "b": [387, 245.75], "t": 4.5}, {"a": [2.25, 0], "b": [2.25, 56], "t": 4.5}], "walls": [{"id": "FF-N", "a": [0, 58.25], "b": [290.25, 58.25], "t": 4.5, "out": -1}, {"id": "FF-W", "a": [4.5, 56], "b": [4.5, 248], "t": 9, "out": -1}, {"id": "FF-S", "a": [0, 243.5], "b": [290.25, 243.5], "t": 9, "out": 1}, {"id": "FF-E", "a": [285.75, 56], "b": [285.75, 248], "t": 9, "out": 1}, {"id": "FF-TE", "a": [107.25, 60.5], "b": [107.25, 114.5], "t": 4.5, "note": "toilet east wall"}, {"id": "FF-BN", "a": [9, 116.75], "b": [177, 116.75], "t": 4.5, "note": "bedroom north wall"}, {"id": "FF-BS", "a": [181.5, 114.5], "b": [181.5, 239], "t": 9, "note": "bedroom / stair"}], "openings": [{"id": "D2f", "wall": "FF-N", "type": "door", "start": 209, "width": 30, "swing": 1, "hinge": "end", "height": 84, "label": "D2", "note": "door to open terrace"}, {"id": "W1", "wall": "FF-E", "type": "window", "start": 61, "width": 48, "sill": 36, "height": 48, "label": "W1"}, {"id": "D2ft", "wall": "FF-TE", "type": "door", "start": 84, "width": 30, "swing": -1, "hinge": "end", "height": 84, "label": "D2"}, {"id": "D1f", "wall": "FF-BN", "type": "door", "start": 140, "width": 36, "swing": 1, "hinge": "end", "height": 84, "label": "D1"}, {"id": "Wfs", "wall": "FF-S", "type": "window", "start": 67, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Wfw", "wall": "FF-W", "type": "window", "start": 148, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Vf", "wall": "FF-W", "type": "vent", "start": 70, "width": 24, "sill": 66, "height": 18, "label": "V"}], "rooms": [{"name": "TOILET", "rect": [9, 60.5, 105, 114.5]}, {"name": "PASSAGE", "rect": [109.5, 60.5, 281.25, 112.25], "labelAt": [160, 88], "sizeText": "4'6\" wide"}, {"name": "BED ROOM", "rect": [9, 119, 177, 239]}, {"name": "STAIR", "rect": [186, 119, 281.25, 239], "labelAt": [233.6, 214], "small": true, "noSize": true}], "stairs": {"flights": [{"rect": [186, 119, 224, 199], "dir": "S", "treads": 8, "label": "DN", "style": "solid"}, {"rect": [243.25, 119, 281.25, 199], "dir": "S", "treads": 8, "style": "dashed"}], "landing": [186, 199, 281.25, 239]}, "lines": [{"pts": [[281.25, 117.5], [224, 117.5], [224, 199]], "style": "rail"}], "columns": [[4.5, 4.5], [107, 4.5], [4.5, 116.75], [181.5, 116.75], [285.75, 116.75], [4.5, 243.5], [181.5, 243.5], [285.75, 243.5]], "fixtures": [{"type": "wc", "rect": [12, 72, 40, 100]}, {"type": "basin", "rect": [114, 60.5, 136, 78]}], "labels": [{"at": [55, 30], "text": "COLUMN STUB", "size": 8}, {"at": [190, 30], "text": "OPEN TERRACE  (4'8\" wide strip)", "size": 10}], "dims": [{"a": [0, 0], "b": [290.25, 0], "off": -100}, {"a": [290.25, 0], "b": [387, 0], "off": -100}, {"a": [0, 0], "b": [387, 0], "off": -128}, {"a": [0, 248], "b": [9, 248], "off": 36, "tiny": true}, {"a": [9, 248], "b": [177, 248], "off": 36}, {"a": [177, 248], "b": [186, 248], "off": 36, "tiny": true}, {"a": [186, 248], "b": [281.25, 248], "off": 36}, {"a": [281.25, 248], "b": [290.25, 248], "off": 36, "tiny": true}, {"a": [290.25, 248], "b": [387, 248], "off": 36}, {"a": [0, 0], "b": [0, 56], "off": -36}, {"a": [0, 56], "b": [0, 60.5], "off": -36, "tiny": true}, {"a": [0, 60.5], "b": [0, 114.5], "off": -36}, {"a": [0, 114.5], "b": [0, 119], "off": -36, "tiny": true}, {"a": [0, 119], "b": [0, 239], "off": -36}, {"a": [0, 239], "b": [0, 248], "off": -36, "tiny": true}, {"a": [0, 0], "b": [0, 248], "off": -68}, {"a": [387, 0], "b": [387, 248], "off": 36}]}, {"id": "RF", "name": "ROOF / UPPER TERRACE PLAN", "level": 240, "terraces": [{"name": "OPEN TERRACE", "sub": "GF roof (below)", "pts": [[0, 0], [387, 0], [387, 248], [290.25, 248], [290.25, 56], [0, 56]], "labelAt": [338, 150], "light": true}, {"name": "UPPER TERRACE", "sub": "on first-floor roof - NO ACCESS YET", "pts": [[0, 56], [290.25, 56], [290.25, 248], [0, 248]], "labelAt": [145, 140]}], "parapets": [{"a": [0, 2.25], "b": [387, 2.25], "t": 4.5}, {"a": [384.75, 0], "b": [384.75, 248], "t": 4.5}, {"a": [290.25, 245.75], "b": [387, 245.75], "t": 4.5}, {"a": [2.25, 0], "b": [2.25, 56], "t": 4.5}], "outlines": [{"pts": [[0, 56], [290.25, 56], [290.25, 248], [0, 248]], "closed": true, "style": "solid"}], "columns": [[4.5, 4.5], [107, 4.5]], "labels": [{"at": [145, 175], "text": "External stair / ladder position: TO BE DESIGNED", "size": 10}, {"at": [55, 30], "text": "COLUMN STUB", "size": 8}], "dims": [{"a": [0, 0], "b": [290.25, 0], "off": -100}, {"a": [290.25, 0], "b": [387, 0], "off": -100}, {"a": [0, 0], "b": [387, 0], "off": -128}, {"a": [0, 0], "b": [0, 56], "off": -36}, {"a": [0, 56], "b": [0, 248], "off": -36}, {"a": [0, 0], "b": [0, 248], "off": -68}]}]};</script>
 <script type="module">
 // Anijo House - 3D viewer + front balcony design studio.
@@ -197,7 +211,7 @@ scene.add(root);
 // ------------------------------------------------------------------ materials
 const std = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.92, ...extra });
 const FACADES = { grey: 0xb8b3a9, offwhite: 0xece6da, beige: 0xdcc9a8 };
-const PILLARS = { plaster: 0xa9a49a, white: 0xf4f1ea, cream: 0xeadcbc, terracotta: 0xb4643f, stone: 0x5f5b55, wood: 0x9a6a42 };
+const PILLARS = { plaster: 0xa9a49a, white: 0xf4f1ea, cream: 0xeadcbc, terracotta: 0xb4643f, stone: 0x5f5b55, wood: 0x9a6a42, brick: 0x9c4a32 };
 const mat = {
   wall: std(FACADES[state.facade]),
   trim: std(0xf1ede4),
@@ -226,6 +240,9 @@ const mat = {
   tank: std(0x1f1f1f, { roughness: 0.6 }),
   deck: std(0xa27b55, { roughness: 0.85 }),
   planter: std(0x7d6650),
+  jaali: std(0xb86a48),
+  tile: std(0xb5532f, { roughness: 0.8 }),
+  tileRib: std(0x9a4425, { roughness: 0.8 }),
   plant: std(0x4f7a3a),
 };
 
@@ -268,6 +285,27 @@ function label(text, x, h, y, parent, cls = '') {
   o.position.set(x, h, y);
   parent.add(o);
   return o;
+}
+
+// square-grid jaali (lattice) in a thin vertical panel
+function lattice(x1, x2, y1, y2, h1, h2, parent, m, cell = 6, t = 1.4) {
+  const alongX = (x2 - x1) >= (y2 - y1);
+  const a1 = alongX ? x1 : y1, a2 = alongX ? x2 : y2;
+  const B = (s, e, ha, hb) => alongX ? box(s, e, y1, y2, ha, hb, m, parent) : box(x1, x2, s, e, ha, hb, m, parent);
+  const n = Math.max(1, Math.round((a2 - a1) / cell));
+  for (let i = 0; i <= n; i++) { const a = a1 + (a2 - a1 - t) * i / n; B(a, a + t, h1, h2); }
+  const k = Math.max(1, Math.round((h2 - h1) / cell));
+  for (let j = 0; j <= k; j++) { const h = h1 + (h2 - h1 - t) * j / k; B(a1, a2, h, h + t); }
+}
+// a slab sloping from (yLow, hLow) up to (yHigh, hHigh), spanning xa..xb
+function slopeBox(xa, xb, yLow, hLow, yHigh, hHigh, thick, lift, material, parent) {
+  const dy = yHigh - yLow, dh = hHigh - hLow;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, thick, Math.hypot(dy, dh)), material);
+  m.position.set((xa + xb) / 2, (hLow + hHigh) / 2 + lift, (yLow + yHigh) / 2);
+  m.rotation.x = -Math.atan2(dh, dy);
+  m.castShadow = true; m.receiveShadow = true;
+  parent.add(m);
+  return m;
 }
 
 // ------------------------------------------------------------------ walls with openings
@@ -373,6 +411,12 @@ const FRONTS = {
   F: { name: 'Classical portico', bay: true, pillar: 'classical', fascia: 'entablature', finish: 'white', parapet: 'railV' },
   G: { name: 'Indian ornate portico', bay: true, pillar: 'ornate', fascia: 'frieze', finish: 'cream', parapet: 'railV', arch: true },
   H: { name: 'Stone frame (floating box)', bay: true, pillar: 'fin', frame: true, finish: 'stone', parapet: 'glass' },
+  I: { name: 'Jaali screen portico', bay: true, pillar: 'square', jaali: true, ownGuard: true, finish: 'white', parapet: 'solid' },
+  J: { name: 'Twin-pillar contemporary', bay: true, pillar: 'twin', finish: 'stone', parapet: 'railH' },
+  K: { name: 'Tiled roof portico', bay: true, pillar: 'none', tiled: true, finish: 'wood', parapet: 'railV' },
+  L: { name: 'Grand arch portico', bay: true, pillar: 'tuscan', bigArch: true, finish: 'cream', parapet: 'baluster' },
+  M: { name: 'Louver screen + flat canopy', bay: true, pillar: 'none', louver: true, finish: 'wood', parapet: 'glass' },
+  N: { name: 'Exposed brick + planters', bay: true, pillar: 'brick', planterFront: true, ownGuard: true, finish: 'brick', parapet: 'railH' },
 };
 // ROOF (upper terrace on the first-floor roof) designs
 const ROOFS = {
@@ -390,7 +434,7 @@ const RS = { x1: FFBLOCK.x1 - 6, x2: FFBLOCK.x2 + 6, y1: FFBLOCK.y1 - 6, y2: FFB
 function parapet(x1, y1, x2, y2, base, parent) {
   const long = (x2 - x1) >= (y2 - y1);
   const style = state.parapet;
-  const wallTop = style === 'solid' ? 36 : style === 'glass' ? 6 : 18;
+  const wallTop = style === 'solid' ? 36 : (style === 'glass' || style === 'baluster') ? 6 : 18;
   box(x1, x2, y1, y2, base, base + wallTop, mat.wall, parent);
   box(x1 - 1, x2 + 1, y1 - 1, y2 + 1, base + wallTop, base + wallTop + 2, mat.trim, parent);   // coping
   if (style === 'solid') return;
@@ -402,6 +446,16 @@ function parapet(x1, y1, x2, y2, base, parent) {
     const g1 = long ? (y1 + y2) / 2 - 0.3 : (x1 + x2) / 2 - 0.3;
     seg(s + 1, s + len - 1, base + wallTop + 2, base + 40, mat.glassPanel, g1, g1 + 0.6);
     seg(s, s + len, base + 40, base + 42, mat.steel);
+    return;
+  }
+  if (style === 'baluster') {            // turned balusters with a broad handrail
+    for (let a = s + 4; a < s + len - 2; a += 7) {
+      const [px, py] = long ? [a, (y1 + y2) / 2] : [(x1 + x2) / 2, a];
+      cyl(px, py, 2.4, 1.3, base + 8, base + 21, mat.accent, parent, 8);
+      cyl(px, py, 1.3, 2.4, base + 21, base + 34, mat.accent, parent, 8);
+    }
+    const c = long ? (y1 + y2) / 2 : (x1 + x2) / 2;
+    seg(s, s + len, base + 34, base + 38, mat.trim, c - 2.75, c + 2.75);
     return;
   }
   seg(s, s + len, base + 36, base + 38);                           // top rail
@@ -448,6 +502,29 @@ function pillar(style, x, y, P, top, parent, side = 1) {
       break;
     }
     case 'fin':          // full-height stone fin, handled by the frame
+    case 'none':         // design draws its own supports
+      break;
+    case 'twin': {       // two slim shafts tied with wood bands
+      const xs = side > 0 ? [x, x + 16] : [x + P - 6, x + P - 22];
+      const lo = Math.min(...xs), hi = Math.max(...xs);
+      xs.forEach(a => box(a, a + 6, y, y + 8, g, top, mat.pillar, parent));
+      box(lo - 2, hi + 8, y - 2, y + 10, g, g + 6, mat.pillar, parent);
+      for (let h = g + 24; h < top - 6; h += 24) box(lo + 6, hi, y + 2, y + 6, h, h + 2.5, mat.pergola, parent);
+      break;
+    }
+    case 'tuscan': {     // smooth round column with simple base and cap
+      const r = P * 0.5;
+      box(x - 3, x + P + 3, y - 3, y + P + 3, g, g + 14, mat.accent, parent);
+      cyl(cx, cy, r * 0.84, r, g + 14, top - 8, mat.pillar, parent, 28);
+      cyl(cx, cy, r * 1.3, r * 0.86, top - 8, top - 4, mat.accent, parent);
+      box(x - 3, x + P + 3, y - 3, y + P + 3, top - 4, top, mat.accent, parent);
+      break;
+    }
+    case 'brick':        // exposed brick pier with mortar courses and a concrete cap
+      box(x, x + P, y, y + P, g, top, mat.pillar, parent);
+      for (let h = g + 12; h < top - 6; h += 6) box(x - 0.2, x + P + 0.2, y - 0.2, y + P + 0.2, h, h + 0.6, mat.cream, parent);
+      box(x - 2, x + P + 2, y - 2, y + P + 2, g, g + 8, mat.slab, parent);
+      box(x - 2, x + P + 2, y - 2, y + P + 2, top - 5, top, mat.slab, parent);
       break;
     default:             // plain square pillar with base
       box(x, x + P, y, y + P, g, top, mat.pillar, parent);
@@ -468,7 +545,7 @@ function buildDesign() {
   const f = FRONTS[state.option];
   const base = FTF, P = state.pillar, T = 4.5;
   const { segs, bay } = frontEdge();
-  const solidUpstand = f.fascia === 'box' || f.fascia === 'frieze';   // the fascia itself is the bay's parapet
+  const solidUpstand = f.fascia === 'box' || f.fascia === 'frieze' || !!f.ownGuard;   // the design builds the bay's own guard
 
   // new slab (only 1'3" beyond the existing 3'9" edge)
   if (f.full) box(0, W, -MAXP, -EXIST, H, FTF, mat.newSlab, design);
@@ -494,7 +571,7 @@ function buildDesign() {
   if (bay) {
     const [b1, b2] = bay;
     const pTop = { box: H - 14, entablature: H - 18, frieze: H - 20 }[f.fascia]
-      ?? (f.portal ? 2 * FTF + 8 : FTF + 38);
+      ?? (f.portal ? 2 * FTF + 8 : f.bigArch ? H - 44 : FTF + 38);
     pillar(f.pillar, b1, -MAXP, P, pTop, design, 1);
     pillar(f.pillar, b2 - P, -MAXP, P, pTop, design, -1);
 
@@ -537,6 +614,70 @@ function buildDesign() {
       [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, FFBLOCK.y1, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design));
       for (let y = -MAXP + P + 8; y < FFBLOCK.y1 - 4; y += 14)
         box(b1 + P, b2 - P, y, y + 3, 2 * FTF, 2 * FTF + 6, mat.pergola, design);
+    }
+    if (f.jaali) {                       // I: terracotta jaali side screens + jaali balcony guard
+      const g = -PLINTH;
+      [b1 + P / 2 - 1.5, b2 - P / 2 - 1.5].forEach(x => {
+        box(x - 1.5, x + 4.5, -MAXP + P, -1, g, g + 12, mat.accent, design);
+        lattice(x, x + 3, -MAXP + P, -1, g + 12, H - 6, design, mat.jaali);
+        box(x - 1, x + 4, -MAXP + P, -EXIST, FTF, FTF + 6, mat.accent, design);
+        lattice(x, x + 3, -MAXP + P, -EXIST, FTF + 6, FTF + 36, design, mat.jaali);
+        box(x - 1.5, x + 4.5, -MAXP + P, -EXIST, FTF + 36, FTF + 38, mat.trim, design);
+      });
+      const yf = -MAXP + P / 2 - 1.5;
+      box(b1 + P, b2 - P, yf - 1, yf + 4, FTF, FTF + 6, mat.accent, design);
+      lattice(b1 + P, b2 - P, yf, yf + 3, FTF + 6, FTF + 36, design, mat.jaali);
+      box(b1 + P, b2 - P, yf - 1.5, yf + 4.5, FTF + 36, FTF + 38, mat.trim, design);
+    }
+    if (f.tiled) {                       // K: wooden posts + sloping clay-tile roof over the balcony
+      const yLow = -MAXP - 14, hLow = FTF + 84, yHigh = FFBLOCK.y1, hHigh = FTF + 108;
+      const roofH = y => hLow + (y - yLow) * (hHigh - hLow) / (yHigh - yLow);
+      const yp = -MAXP + P / 2, top = roofH(yp) - 3;
+      [b1, b2 - P].forEach(x => {
+        box(x, x + P, -MAXP, -MAXP + P, -PLINTH, top - 6, mat.pillar, design);
+        box(x - 3, x + P + 3, -MAXP - 3, -MAXP + P + 3, -PLINTH, -PLINTH + 26, mat.stoneClad, design);
+        box(x - 2, x + P + 2, -MAXP - 2, -MAXP + P + 2, top - 10, top - 6, mat.pergola, design);
+      });
+      box(b1 - 8, b2 + 8, yp - 3.5, yp + 3.5, top - 6, top, mat.pergola, design);          // front beam
+      box(b1 - 8, b2 + 8, yHigh - 5, yHigh, hHigh - 9, hHigh - 3, mat.pergola, design);     // wall plate
+      for (let x = b1 - 6; x <= b2 + 3; x += (b2 - b1 + 9) / 7) slopeBox(x, x + 3, yLow, hLow, yHigh, hHigh, 5, -3.5, mat.pergola, design);
+      slopeBox(b1 - 12, b2 + 12, yLow, hLow, yHigh, hHigh, 2.5, 0.5, mat.tile, design);
+      for (let x = b1 - 11; x < b2 + 10; x += 7) slopeBox(x, x + 3.2, yLow, hLow, yHigh, hHigh, 2.2, 2.6, mat.tileRib, design);
+      box(b1 - 12, b2 + 12, yLow - 1.5, yLow + 1.5, hLow - 2, hLow + 3, mat.tileRib, design);   // eave board
+    }
+    if (f.bigArch) {                     // L: one wide elliptical arch between the two columns
+      const spring = H - 44, xL = b1 + P, xR = b2 - P, xc = (xL + xR) / 2, ry = 34;
+      [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, -MAXP + P, spring, H, mat.pillar, design));
+      const sh = new THREE.Shape();
+      sh.moveTo(xL, spring); sh.lineTo(xL, H); sh.lineTo(xR, H); sh.lineTo(xR, spring);
+      sh.absellipse(xc, spring, (xR - xL) / 2, ry, 0, Math.PI, false);
+      const arch = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: P * 0.8, bevelEnabled: false, curveSegments: 40 }), mat.pillar);
+      arch.position.z = -MAXP + P * 0.1; arch.castShadow = true; arch.receiveShadow = true; design.add(arch);
+      box(xc - 5, xc + 5, -MAXP - 1.5, -MAXP + P, spring + ry - 3, H, mat.accent, design);                 // keystone
+      box(b1 + P, b2 - P, -MAXP + P * 0.9, -MAXP + P * 0.9 + 1.5, H - 2, H - 0.5, mat.led, design);
+    }
+    if (f.louver) {                      // M: vertical wood fins screening the window side + flat canopy
+      const g = -PLINTH, topH = FTF + 96, f1 = b2 - 52;
+      for (let i = 0; i < 8; i++) { const x = f1 + i * (52 - 2.5) / 7; box(x, x + 2.5, -MAXP, -MAXP + 9, g + 4, topH, mat.pillar, design); }
+      box(f1 - 1, b2 + 1, -MAXP - 0.5, -MAXP + 9.5, g, g + 4, mat.steel, design);
+      box(b1, b1 + 8, -MAXP, -MAXP + 8, g, topH, mat.accent, design);                                     // slim post
+      box(b1 - 2, b1 + 10, -MAXP - 2, -MAXP + 10, g, g + 8, mat.steel, design);
+      box(b1 - 6, b2 + 6, -MAXP - 6, FFBLOCK.y1, topH, topH + 5, mat.accent, design);                     // flat canopy
+      box(b1 - 6.5, b2 + 6.5, -MAXP - 6.5, -MAXP - 6, topH - 1, topH + 6, mat.steel, design);
+      box(b1 + 10, f1 - 4, -MAXP + 4, -MAXP + 5.5, topH - 1.5, topH, mat.led, design);
+    }
+    if (f.planterFront) {                // N: brick fascia, planter trough as the balcony guard, ground planters
+      box(b1, b2, -MAXP - 1, -MAXP, H - 6, FTF, mat.pillar, design);
+      box(b1 + P, b2 - P, -MAXP, -MAXP + 16, FTF, FTF + 22, mat.accent, design);
+      box(b1 + P + 2, b2 - P - 2, -MAXP + 2, -MAXP + 14, FTF + 22, FTF + 33, mat.plant, design);
+      box(b1 + P, b2 - P, -MAXP + 15, -MAXP + 16.5, FTF + 40, FTF + 41.5, mat.steel, design);
+      for (let x = b1 + P; x <= b2 - P; x += (b2 - b1 - 2 * P - 1.5) / 4) box(x, x + 1.5, -MAXP + 15, -MAXP + 16.5, FTF + 22, FTF + 40, mat.steel, design);
+      parapet(b1, -MAXP + P, b1 + T, -EXIST, base, design);
+      parapet(b2 - T, -MAXP + P, b2, -EXIST, base, design);
+      [[b1 - 34, b1 - 4], [b2 + 4, b2 + 34]].forEach(([a, b]) => {
+        box(a, b, -MAXP + 2, -MAXP + 20, -PLINTH, -PLINTH + 20, mat.accent, design);
+        box(a + 2, b - 2, -MAXP + 4, -MAXP + 18, -PLINTH + 20, -PLINTH + 34, mat.plant, design);
+      });
     }
     if (f.frame) {                       // H: full-height stone fins + floating roof slab over the bay
       const fw = Math.max(15, P + 3);
@@ -675,6 +816,7 @@ function updateFacts(bay) {
     ['Clear yard in front', fmt(-NEIGH[3] - depth)],
   ];
   if (bay) rows.push(['Bay position', `${fmt(bay[0])} to ${fmt(bay[1])} from west corner`]);
+  document.getElementById('optName').textContent = `${state.option} · ${f.name}`;
   rows.push(['Upper terrace', `${fmt(FFBLOCK.x2 - FFBLOCK.x1)} × ${fmt(FFBLOCK.y2 - FFBLOCK.y1)} · ${ROOFS[state.roofDesign]}`]);
   rows.push(['Roof access', { none: 'none yet', straight: `straight steel stair, 3'0" wide, 15 risers of 8"`, spiral: `spiral stair, 5'0" dia, 16 risers of 7½"` }[state.access]]);
   document.getElementById('facts').innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
@@ -750,6 +892,15 @@ function bindUI() {
   });
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
   on('panelToggle', 'click', () => document.body.classList.toggle('collapsed'));
+  const keys = Object.keys(FRONTS);
+  const step = d => {
+    const k = keys[(keys.indexOf(state.option) + d + keys.length) % keys.length];
+    const r = document.querySelector(`input[name=opt][value=${k}]`);
+    r.checked = true; r.dispatchEvent(new Event('change'));
+    r.closest('label').scrollIntoView({ block: 'nearest' });
+  };
+  on('prevOpt', 'click', () => step(-1));
+  on('nextOpt', 'click', () => step(1));
 }
 
 function resize() {

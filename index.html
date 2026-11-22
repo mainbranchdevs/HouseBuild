@@ -95,6 +95,12 @@
   <label class="opt"><input type="radio" name="roof" value="R2"><b>R2 · Pergola deck + planters</b><small>Wooden pergola over a seating deck, planters along the edges.</small></label>
   <label class="opt"><input type="radio" name="roof" value="R3"><b>R3 · Polycarbonate shade</b><small>Steel frame with a light, rain-proof roof sheet, plus water tank.</small></label>
   <label class="opt"><input type="radio" name="roof" value="R4"><b>R4 · Solar canopy</b><small>Raised steel frame with solar panels tilted south. Shade and power.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R5"><b>R5 · Roof garden</b><small>Lawn patch, vegetable beds, hedge planters, potted trees and a bench.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R6"><b>R6 · Tiled gazebo sit-out</b><small>Wooden gazebo with a clay-tile roof and built-in seats, plus water tank.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R7"><b>R7 · Shade-sail lounge</b><small>Two fabric shade sails on steel poles over an L-shaped sofa deck.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R8"><b>R8 · Roof room + terrace</b><small>Small room on the stair side (store, puja or future stair head) with the tank on top.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R9"><b>R9 · Utility terrace</b><small>Water tank, solar water heater and clothes-drying lines. Practical and low cost.</small></label>
+  <label class="opt"><input type="radio" name="roof" value="R10"><b>R10 · Party deck</b><small>Built-in bench seating, bar counter with stools, string lights.</small></label>
   <div class="row"><span>Way up to the roof</span>
     <select id="access">
       <option value="none">None yet</option>
@@ -241,6 +247,11 @@ const mat = {
   deck: std(0xa27b55, { roughness: 0.85 }),
   planter: std(0x7d6650),
   jaali: std(0xb86a48),
+  lawn: std(0x76a04c),
+  sailA: std(0xf1e7d3, { side: THREE.DoubleSide }),
+  sailB: std(0xc8683f, { side: THREE.DoubleSide }),
+  cushion: std(0xc5563b),
+  cushion2: std(0x2f6f7a),
   tile: std(0xb5532f, { roughness: 0.8 }),
   tileRib: std(0x9a4425, { roughness: 0.8 }),
   plant: std(0x4f7a3a),
@@ -287,6 +298,17 @@ function label(text, x, h, y, parent, cls = '') {
   return o;
 }
 
+function sphere(x, y, h, r, material, parent) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), material);
+  m.position.set(x, h, y); m.castShadow = true; parent.add(m); return m;
+}
+// flat triangle between three points given as [planX, planY, height]
+function tri(a, b, c, material, parent) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([a, b, c].flatMap(p => [p[0], p[2], p[1]]), 3));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, material); m.castShadow = true; parent.add(m); return m;
+}
 // square-grid jaali (lattice) in a thin vertical panel
 function lattice(x1, x2, y1, y2, h1, h2, parent, m, cell = 6, t = 1.4) {
   const alongX = (x2 - x1) >= (y2 - y1);
@@ -425,6 +447,12 @@ const ROOFS = {
   R2: 'Pergola deck + planters',
   R3: 'Polycarbonate shade + water tank',
   R4: 'Solar canopy + water tank',
+  R5: 'Roof garden',
+  R6: 'Tiled gazebo sit-out',
+  R7: 'Shade-sail lounge',
+  R8: 'Roof room + terrace',
+  R9: 'Utility terrace',
+  R10: 'Party deck',
 };
 const design = new THREE.Group(); root.add(design);
 const roofDesign = new THREE.Group(); root.add(roofDesign);
@@ -752,6 +780,105 @@ function buildRoof() {
       }
     }
     waterTank(250, 210, roofDesign);
+  }
+
+  const R = roofDesign;
+  const planterBox = (x1, x2, y1, y2, h = 16, ph = 13) => {
+    box(x1, x2, y1, y2, top, top + h, mat.planter, R);
+    box(x1 + 2, x2 - 2, y1 + 2, y2 - 2, top + h, top + h + ph, mat.plant, R);
+  };
+  const pottedTree = (x, y) => {
+    cyl(x, y, 9, 7, top, top + 14, mat.planter, R, 12);
+    cyl(x, y, 1.6, 1.6, top + 14, top + 52, mat.pergola, R, 8);
+    sphere(x, y, top + 64, 18, mat.plant, R);
+  };
+  const bench = (x1, x2, y1, y2) => {
+    box(x1, x2, y1, y2, top + 14, top + 17, mat.pergola, R);
+    [[x1, x1 + 3], [x2 - 3, x2]].forEach(([a, b]) => box(a, b, y1 + 1, y2 - 1, top, top + 14, mat.pergola, R));
+  };
+  if (rd === 'R5') {                      // roof garden: lawn, vegetable beds, hedge planters, trees, bench
+    box(52, 180, 70, 184, top, top + 1.5, mat.lawn, R);
+    for (let i = 0; i < 3; i++) planterBox(10, 42, 62 + i * 58, 112 + i * 58, 14, 10);
+    for (let i = 0; i < 4; i++) planterBox(60 + i * 56, 108 + i * 56, 222, 244, 16, 14);
+    pottedTree(206, 82); pottedTree(252, 160);
+    bench(190, 252, 192, 208);
+  }
+  if (rd === 'R6') {                      // tiled gazebo with built-in seating, water tank
+    const cx = 92, cy = 150, hw = 54, ph = 90;
+    box(cx - hw - 6, cx + hw + 6, cy - hw - 6, cy + hw + 6, top, top + 3, mat.deck, R);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => box(cx + a * hw - 3, cx + a * hw + 3, cy + b * hw - 3, cy + b * hw + 3, top, top + ph, mat.pergola, R));
+    [-1, 1].forEach(b => box(cx - hw - 4, cx + hw + 4, cy + b * hw - 3, cy + b * hw + 3, top + ph, top + ph + 6, mat.pergola, R));
+    [-1, 1].forEach(a => box(cx + a * hw - 3, cx + a * hw + 3, cy - hw - 4, cy + hw + 4, top + ph, top + ph + 6, mat.pergola, R));
+    const cone = new THREE.Mesh(new THREE.ConeGeometry((hw + 12) * Math.SQRT2, 36, 4), mat.tile);
+    cone.rotation.y = Math.PI / 4; cone.position.set(cx, top + ph + 6 + 18, cy); cone.castShadow = true; R.add(cone);
+    cyl(cx, cy, 1.5, 3, top + ph + 42, top + ph + 52, mat.tileRib, R, 8);
+    box(cx - hw + 4, cx + hw - 4, cy + hw - 20, cy + hw - 4, top + 3, top + 19, mat.pergola, R);     // seats (U shape)
+    box(cx - hw + 4, cx - hw + 20, cy - hw + 4, cy + hw - 20, top + 3, top + 19, mat.pergola, R);
+    box(cx + hw - 20, cx + hw - 4, cy - hw + 4, cy + hw - 20, top + 3, top + 19, mat.pergola, R);
+    box(cx - 14, cx + 14, cy - 14, cy + 14, top + 3, top + 17, mat.accent, R);
+    waterTank(250, 214, R);
+    planterBox(180, 230, 60, 80);
+  }
+  if (rd === 'R7') {                      // shade sails on steel poles over a lounge
+    box(10, 214, 60, 242, top, top + 0.8, mat.deck, R);
+    const A = [18, 66, top + 112], B = [206, 66, top + 86], C = [206, 236, top + 112], Dd = [18, 236, top + 86];
+    [A, B, C, Dd].forEach(q => cyl(q[0], q[1], 2, 2.4, top, q[2] + 4, mat.steel, R, 10));
+    tri(A, B, C, mat.sailA, R); tri(A, C, Dd, mat.sailB, R);
+    box(30, 150, 204, 230, top, top + 14, mat.accent, R);                                           // L sofa
+    box(30, 150, 226, 232, top + 14, top + 30, mat.accent, R);
+    box(30, 56, 120, 204, top, top + 14, mat.accent, R);
+    box(24, 30, 120, 232, top + 14, top + 30, mat.accent, R);
+    box(34, 146, 206, 224, top + 14, top + 18, mat.cushion2, R);
+    box(34, 54, 124, 202, top + 14, top + 18, mat.cushion2, R);
+    box(84, 124, 146, 176, top, top + 12, mat.pergola, R);
+    planterBox(236, 286, 196, 244, 18, 14);
+    pottedTree(250, 150);
+  }
+  if (rd === 'R8') {                      // small roof room over the stair side (store / puja / future stair head) + open terrace
+    const rx1 = 181.5, rx2 = 290.25, ry1 = 132, ry2 = 248, rh = 96;
+    box(rx1, rx2, ry1, ry2, top, top + rh, mat.wall, R);
+    box(rx1 - 8, rx2 + 6, ry1 - 8, ry2 + 6, top + rh, top + rh + 5, mat.slab, R);
+    box(200, 236, ry1 - 0.8, ry1, top, top + 84, mat.door, R);
+    box(196.5, 239.5, ry1 - 1.6, ry1 - 0.8, top + 84, top + 87.5, mat.trim, R);
+    box(rx1 - 0.8, rx1, 170, 218, top + 36, top + 84, mat.glass, R);
+    [[32.5, 36], [84, 87.5]].forEach(([a, b]) => box(rx1 - 2.5, rx1, 166.5, 221.5, top + a, top + b, mat.trim, R));
+    box(200, 236, ry1 - 16, ry1, top + 90, top + 93, mat.slab, R);                                   // door shade
+    cyl(240, 196, 22, 23, top + rh + 5, top + rh + 53, mat.tank, R);
+    cyl(240, 196, 8, 8, top + rh + 53, top + rh + 56, mat.tank, R);
+    bench(40, 110, 222, 238);
+    planterBox(10, 34, 62, 130, 16, 12);
+  }
+  if (rd === 'R9') {                      // utility terrace: tank, solar water heater, clothes lines
+    waterTank(250, 214, R);
+    slopeBox(46, 122, 132, top + 8, 76, top + 46, 2.2, 0, mat.pv, R);                               // collector faces south
+    const tk = cyl(84, 72, 9, 9, 0, 84, mat.accent, R, 16); tk.rotation.z = Math.PI / 2; tk.position.set(84, top + 54, 72);
+    [[50, 76], [118, 76]].forEach(([x, y]) => cyl(x, y, 1.2, 1.2, top, top + 46, mat.steel, R, 6));
+    [[50, 130], [118, 130]].forEach(([x, y]) => cyl(x, y, 1.2, 1.2, top, top + 9, mat.steel, R, 6));
+    const px = [140, 278], ly = [150, 160, 170, 180];
+    px.forEach(x => { cyl(x, 165, 1.4, 1.4, top, top + 72, mat.steel, R, 8); box(x - 1, x + 1, 146, 184, top + 70, top + 72, mat.steel, R); });
+    ly.forEach(y => bar([px[0], y, top + 71], [px[1], y, top + 71], 0.25, mat.steel, R));
+    [[160, 150, mat.cushion, 30], [196, 150, mat.accent, 24], [170, 170, mat.cushion2, 34], [220, 170, mat.sailA, 28], [236, 150, mat.cushion2, 20]]
+      .forEach(([x, y, m, hgt]) => box(x, x + 20, y - 0.3, y + 0.3, top + 71 - hgt, top + 71, m, R));
+  }
+  if (rd === 'R10') {                     // party deck: built-in seating, bar counter, string lights
+    box(8, 288, 58, 246, top, top + 0.8, mat.deck, R);
+    box(12, 34, 70, 236, top, top + 16, mat.accent, R); box(12, 18, 70, 236, top + 16, top + 32, mat.accent, R);
+    box(34, 190, 214, 236, top, top + 16, mat.accent, R); box(34, 190, 230, 236, top + 16, top + 32, mat.accent, R);
+    box(18, 34, 74, 212, top + 16, top + 20, mat.cushion, R); box(38, 186, 216, 230, top + 16, top + 20, mat.cushion, R);
+    box(70, 110, 150, 180, top, top + 13, mat.pergola, R);
+    box(196, 276, 60, 78, top, top + 40, mat.pergola, R); box(193, 279, 57, 82, top + 40, top + 43, mat.accent, R);   // bar counter
+    [212, 236, 260].forEach(x => { cyl(x, 96, 6, 6, top + 26, top + 29, mat.cushion2, R, 12); cyl(x, 96, 1.2, 1.2, top, top + 26, mat.steel, R, 6); });
+    const poles = [[14, 64], [284, 64], [284, 240], [14, 240]], ph = top + 100;
+    poles.forEach(([x, y]) => cyl(x, y, 1.5, 1.5, top, ph, mat.steel, R, 8));
+    [[0, 2], [1, 3], [0, 1], [3, 2]].forEach(([i, j]) => {
+      const a = poles[i], b = poles[j], n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 16);
+      let prev = [a[0], a[1], ph];
+      for (let k = 1; k <= n; k++) {
+        const t = k / n, q = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, ph - Math.sin(Math.PI * t) * 12];
+        bar(prev, q, 0.2, mat.steel, R); if (k < n) sphere(q[0], q[1], q[2] - 1.5, 1.6, mat.led, R); prev = q;
+      }
+    });
+    planterBox(236, 286, 200, 244, 18, 14);
   }
 
   if (state.access === 'straight') {      // straight steel stair on the east terrace, along the first-floor wall

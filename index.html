@@ -36,11 +36,27 @@
   #cycler button { font: inherit; font-size: 16px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--ink); color: #fff; cursor: pointer; }
   #cycler span { font-weight: 600; min-width: 150px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #panelToggle { position: fixed; top: 10px; left: 340px; z-index: 5; padding: 5px 10px; }
+  #walkBtn { width: 100%; margin-top: 8px; font: inherit; font-weight: 600; padding: 9px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; }
+  body.walk aside, body.walk #panelToggle, body.walk #cycler { display: none; }
+  body.walk #app { inset: 0; }
+  #walkHud > * { position: fixed; z-index: 7; }
+  #walkBar { top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 206px); }
+  #walkBar button, #walkBar select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fffffff2; color: var(--ink); cursor: pointer; max-width: none; }
+  #walkBar #walkExit { background: var(--ink); color: #fff; border-color: var(--ink); }
+  #walkRoom { bottom: 14px; left: 50%; transform: translateX(-50%); background: #1d1d1be0; color: #fff; padding: 6px 14px; border-radius: 999px; font-weight: 600;
+    white-space: nowrap; max-width: calc(100vw - 20px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+  #walkMap { top: 10px; right: 10px; width: 176px; height: 148px; background: #fffffff0; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  #joy { left: 18px; bottom: 56px; width: 124px; height: 124px; border-radius: 50%; background: #ffffff66; border: 2px solid #ffffffcc; touch-action: none; }
+  #joyKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: #1d1d1bcc; pointer-events: none; }
+  #walkHint { top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1d1d1bd0; color: #fff; padding: 10px 16px; border-radius: 8px; text-align: center;
+    transition: opacity .6s; pointer-events: none; max-width: 86vw; }
   body.collapsed #panelToggle { left: 10px; }
   @media (max-width: 700px) {
     #app { inset: 45vh 0 0 0; } aside { width: 100%; bottom: auto; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
     #panelToggle { display: none; }
     #cycler { left: 50%; }
+    #walkMap { width: 132px; height: 111px; }
+    #walkBar { max-width: calc(100vw - 162px); }
   }
 </style>
 <script type="importmap">
@@ -64,6 +80,7 @@
     <button data-view="balcony">Balcony</button>
     <button data-view="roof">Roof</button>
   </div>
+  <button id="walkBtn">Walk inside the house</button>
 
   <h2>Front design</h2>
   <label class="opt"><input type="radio" name="opt" value="A"><b>A · Keep existing edge</b><small>No new slab. Railing on the existing 3'9" edge.</small></label>
@@ -160,6 +177,13 @@
 </aside>
 <button id="panelToggle">☰ Panel</button>
 <div id="app"></div>
+<div id="walkHud" hidden>
+  <div id="walkBar"><button id="walkExit">✕ Exit walk</button><select id="walkGo"></select><button id="walkFloor">▲ Go upstairs</button></div>
+  <canvas id="walkMap" width="352" height="296" title="Tap the map to jump there"></canvas>
+  <div id="joy"><div id="joyKnob"></div></div>
+  <div id="walkRoom"></div>
+  <div id="walkHint">Drag to look around.<br>Use the round pad (bottom left) or the arrow keys to walk.</div>
+</div>
 <div id="cycler"><button id="prevOpt" aria-label="Previous design">◀</button><span id="optName"></span><button id="nextOpt" aria-label="Next design">▶</button></div>
 <script>window.HOUSE_MODEL = {"meta": {"project": "Anijo House", "revision": "R0", "date": "2026-11-22", "status": "DRAFT - compiled from drawing fragments and site photos. Verify every dimension on site before building.", "units": "inches. Origin = north-west outer corner of ground floor. x runs east, y runs south.", "overall": {"eastWest": 387, "northSouth": 248}, "floorToFloor": 120, "slab": 5, "plinth": 18, "doorHead": 84, "outerWall": 9, "innerWall": 4.5, "sources": ["inputs/1-floor-plan-fragments/WhatsApp Image 2026-11-22 at 11.56.32 AM.jpeg  (architect's FIRST FLOOR PLAN, from 'RABINDRA BB 2.pdf')", "inputs/1-floor-plan-fragments/WhatsApp Image 2026-11-22 at 12.35.04 PM.jpeg  (ground floor redraw, marked 'AI-generated content')", "inputs/3-construction-photos-videos/*.jpeg  (north, east and west faces, first-floor terrace)"]}, "resolved": ["Stair is U-shaped (dog-legged) as per architect - confirmed by owner 2026-11-22.", "Stair room clear width about 7'11\" - confirmed by owner 2026-11-22.", "Ground-floor bedroom has a 5'0\" south window like the first floor - confirmed by owner 2026-11-22.", "Front (north) slab projection is 3'6\"-4'0\" today; drawn at 3'9\" - owner 2026-11-22.", "Proposed: balcony 5'0\" out x 6'0\" long, centred on main door + first hall window as a group, with pillars at its outer corners - owner 2026-11-22.", "Front open yard (ours) is 12'0\" from our front wall to the neighbouring building - owner 2026-11-22."], "site": {"neighbours": [{"rect": [-40, -200, 427, -144], "label": "NEIGHBOURING BUILDING (front face 12'0\" from our wall; width not measured)"}], "yards": [{"rect": [-40, -144, 427, 0], "label": "OPEN YARD (ours)", "labelAt": [-2, -85]}], "existing": [{"pts": [[0, 0], [0, -45], [387, -45], [387, 0]], "label": "EXISTING SLAB PROJECTION 3'9\" (3'6\"-4'0\")", "labelAt": [325, -22]}], "proposed": [{"pts": [[166, -45], [166, -60], [238, -60], [238, -45]], "label": "PROPOSED BALCONY 5'0\" x 6'0\"", "labelAt": [62, -72]}], "pillars": [[170.5, -55.5], [233.5, -55.5]], "dims": [{"a": [387, -144], "b": [387, 0], "off": 36}, {"a": [0, -45], "b": [0, 0], "off": -36}, {"a": [166, -60], "b": [238, -60], "off": -30, "text": "6'0\""}, {"a": [238, -60], "b": [238, 0], "off": 22, "text": "5'0\""}]}, "issues": [{"id": 4, "severity": "medium", "text": "Columns: only the 8 columns on the architect's first-floor plan are shown. Ground-floor-only columns (e.g. along the north hall wall and east wall, visible in photos) are not on any drawing. Need the structural/column layout or site measurements."}, {"id": 5, "severity": "low", "text": "Two column stubs on the north terrace edge and starter bars on the first-floor roof have no planned use yet. Decide in the design phase (pillars, pergola or future extension)."}, {"id": 6, "severity": "low", "text": "Overall size: AI redraw says 32'3 3/4\" x 20'8 1/4\", architect says 32'3\" x 20'8\". Model uses the architect's figures."}, {"id": 7, "severity": "low", "text": "Estimated from photos, need tape: hall windows (2 nos, 4'0\" assumed), kitchen east window (4'0\"), east side door position (7'0\" from north corner), terrace parapet height (3'0\"), plinth height (1'6\")."}, {"id": 9, "severity": "high", "text": "STRUCTURAL: the balcony grows from a 3'9\" cantilever to 5'0\" carried on new pillars. Pillar footings, size and how the new slab ties into the existing slab must be designed or approved by a structural engineer before work starts."}, {"id": 10, "severity": "low", "text": "Balcony is centred on the main door + first hall window taken together (owner's idea, since the door is off-centre): 13'10\" to 19'10\" from the west corner. That window position is estimated from photos, so measure it. Note the west pillar stands 5'0\" out in line with the east half of the main door; check the walking path. Pillar size drawn 9\" x 9\" (design phase will refine)."}, {"id": 8, "severity": "low", "text": "Upper terrace on the first-floor roof (24'2 1/4\" x 16'0\") has no access. An external stair/ladder location is to be decided (design phase)."}], "floors": [{"id": "GF", "name": "GROUND FLOOR PLAN", "level": 0, "walls": [{"id": "GF-N", "a": [0, 4.5], "b": [387, 4.5], "t": 9, "out": -1}, {"id": "GF-S", "a": [0, 243.5], "b": [387, 243.5], "t": 9, "out": 1}, {"id": "GF-W", "a": [4.5, 0], "b": [4.5, 248], "t": 9, "out": -1}, {"id": "GF-E", "a": [382.5, 0], "b": [382.5, 248], "t": 9, "out": 1}, {"id": "GF-TS", "a": [9, 71.25], "b": [133.5, 71.25], "t": 4.5, "note": "toilet south wall"}, {"id": "GF-TE", "a": [131.25, 9], "b": [131.25, 73.5], "t": 4.5, "note": "toilet east wall"}, {"id": "GF-HB", "a": [9, 116.75], "b": [181.5, 116.75], "t": 4.5, "note": "hall / bedroom"}, {"id": "GF-BS", "a": [181.5, 114.5], "b": [181.5, 239], "t": 9, "note": "bedroom / stair"}, {"id": "GF-SK", "a": [285.75, 114.5], "b": [285.75, 239], "t": 9, "note": "stair / kitchen"}, {"id": "GF-KN", "a": [285.75, 116.75], "b": [378, 116.75], "t": 4.5, "note": "kitchen north wall"}], "openings": [{"id": "D", "wall": "GF-N", "type": "door", "start": 134, "width": 60, "leaves": 2, "swing": 1, "height": 84, "label": "D", "note": "main double door"}, {"id": "W2a", "wall": "GF-N", "type": "window", "start": 222, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}, {"id": "W2b", "wall": "GF-N", "type": "window", "start": 306, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}, {"id": "Va", "wall": "GF-W", "type": "vent", "start": 18, "width": 22, "sill": 60, "height": 24, "label": "V"}, {"id": "Vb", "wall": "GF-W", "type": "vent", "start": 80, "width": 22, "sill": 60, "height": 24, "label": "V"}, {"id": "Wgb", "wall": "GF-W", "type": "window", "start": 144, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Wgs", "wall": "GF-S", "type": "window", "start": 67, "width": 60, "sill": 36, "height": 48, "label": "W", "note": "confirmed by owner: same as first-floor bedroom south window"}, {"id": "D2t", "wall": "GF-TS", "type": "door", "start": 86, "width": 30, "swing": -1, "hinge": "start", "height": 84, "label": "D2"}, {"id": "D1g", "wall": "GF-HB", "type": "door", "start": 140, "width": 36, "swing": 1, "hinge": "end", "height": 84, "label": "D1"}, {"id": "D2k", "wall": "GF-KN", "type": "door", "start": 300, "width": 30, "swing": 1, "hinge": "start", "height": 84, "label": "D2"}, {"id": "D2e", "wall": "GF-E", "type": "door", "start": 84, "width": 30, "swing": -1, "hinge": "start", "height": 84, "label": "D2", "estimated": true}, {"id": "W2k", "wall": "GF-E", "type": "window", "start": 156, "width": 48, "sill": 36, "height": 48, "label": "W2", "estimated": true}], "rooms": [{"name": "TOILET", "rect": [9, 9, 129, 69]}, {"name": "WASH", "rect": [9, 73.5, 129, 114.5], "noSize": true}, {"name": "HALL / LIVING", "rect": [133.5, 9, 378, 114.5], "labelAt": [256, 66]}, {"name": "BED ROOM", "rect": [9, 119, 177, 239]}, {"name": "STAIR", "rect": [186, 119, 281.25, 239], "labelAt": [233.6, 214], "small": true}, {"name": "KITCHEN", "rect": [290.25, 119, 378, 239], "labelAt": [322, 170]}], "stairs": {"flights": [{"rect": [243.25, 119, 281.25, 199], "dir": "S", "treads": 8, "label": "UP", "style": "solid"}, {"rect": [186, 119, 224, 199], "dir": "N", "treads": 8, "style": "dashed"}], "landing": [186, 199, 281.25, 239]}, "columns": [[4.5, 4.5], [107, 4.5], [4.5, 116.75], [181.5, 116.75], [285.75, 116.75], [4.5, 243.5], [181.5, 243.5], [285.75, 243.5]], "fixtures": [{"type": "wc", "rect": [14, 12, 42, 40]}, {"type": "basin", "rect": [9, 80, 27, 100]}, {"type": "platform", "rect": [354, 119, 378, 239]}, {"type": "platform", "rect": [290.25, 215, 354, 239]}, {"type": "sink", "rect": [356, 140, 376, 162]}, {"type": "stove", "rect": [300, 217, 330, 237]}], "labels": [{"at": [164, 50], "text": "ENTRANCE", "size": 9}], "dims": [{"a": [0, 0], "b": [134, 0], "off": -118}, {"a": [134, 0], "b": [194, 0], "off": -118}, {"a": [194, 0], "b": [387, 0], "off": -118}, {"a": [0, 248], "b": [9, 248], "off": 36, "tiny": true}, {"a": [9, 248], "b": [177, 248], "off": 36}, {"a": [177, 248], "b": [186, 248], "off": 36, "tiny": true}, {"a": [186, 248], "b": [281.25, 248], "off": 36}, {"a": [281.25, 248], "b": [290.25, 248], "off": 36, "tiny": true}, {"a": [290.25, 248], "b": [378, 248], "off": 36}, {"a": [378, 248], "b": [387, 248], "off": 36, "tiny": true}, {"a": [0, 248], "b": [387, 248], "off": 68}, {"a": [0, 0], "b": [0, 9], "off": -36, "tiny": true}, {"a": [0, 9], "b": [0, 69], "off": -36}, {"a": [0, 69], "b": [0, 114.5], "off": -36}, {"a": [0, 114.5], "b": [0, 119], "off": -36, "tiny": true}, {"a": [0, 119], "b": [0, 239], "off": -36}, {"a": [0, 239], "b": [0, 248], "off": -36, "tiny": true}, {"a": [0, 0], "b": [0, 248], "off": -68}, {"a": [387, 0], "b": [387, 84], "off": 36}, {"a": [387, 84], "b": [387, 114], "off": 36}, {"a": [387, 114], "b": [387, 248], "off": 36}, {"a": [387, 0], "b": [387, 248], "off": 68}]}, {"id": "FF", "name": "FIRST FLOOR PLAN", "level": 120, "terraces": [{"name": "OPEN TERRACE", "sub": "on ground-floor roof", "pts": [[0, 0], [387, 0], [387, 248], [290.25, 248], [290.25, 56], [0, 56]], "labelAt": [338, 150]}], "parapets": [{"a": [0, 2.25], "b": [387, 2.25], "t": 4.5}, {"a": [384.75, 0], "b": [384.75, 248], "t": 4.5}, {"a": [290.25, 245.75], "b": [387, 245.75], "t": 4.5}, {"a": [2.25, 0], "b": [2.25, 56], "t": 4.5}], "walls": [{"id": "FF-N", "a": [0, 58.25], "b": [290.25, 58.25], "t": 4.5, "out": -1}, {"id": "FF-W", "a": [4.5, 56], "b": [4.5, 248], "t": 9, "out": -1}, {"id": "FF-S", "a": [0, 243.5], "b": [290.25, 243.5], "t": 9, "out": 1}, {"id": "FF-E", "a": [285.75, 56], "b": [285.75, 248], "t": 9, "out": 1}, {"id": "FF-TE", "a": [107.25, 60.5], "b": [107.25, 114.5], "t": 4.5, "note": "toilet east wall"}, {"id": "FF-BN", "a": [9, 116.75], "b": [177, 116.75], "t": 4.5, "note": "bedroom north wall"}, {"id": "FF-BS", "a": [181.5, 114.5], "b": [181.5, 239], "t": 9, "note": "bedroom / stair"}], "openings": [{"id": "D2f", "wall": "FF-N", "type": "door", "start": 209, "width": 30, "swing": 1, "hinge": "end", "height": 84, "label": "D2", "note": "door to open terrace"}, {"id": "W1", "wall": "FF-E", "type": "window", "start": 61, "width": 48, "sill": 36, "height": 48, "label": "W1"}, {"id": "D2ft", "wall": "FF-TE", "type": "door", "start": 84, "width": 30, "swing": -1, "hinge": "end", "height": 84, "label": "D2"}, {"id": "D1f", "wall": "FF-BN", "type": "door", "start": 140, "width": 36, "swing": 1, "hinge": "end", "height": 84, "label": "D1"}, {"id": "Wfs", "wall": "FF-S", "type": "window", "start": 67, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Wfw", "wall": "FF-W", "type": "window", "start": 148, "width": 60, "sill": 36, "height": 48, "label": "W"}, {"id": "Vf", "wall": "FF-W", "type": "vent", "start": 70, "width": 24, "sill": 66, "height": 18, "label": "V"}], "rooms": [{"name": "TOILET", "rect": [9, 60.5, 105, 114.5]}, {"name": "PASSAGE", "rect": [109.5, 60.5, 281.25, 112.25], "labelAt": [160, 88], "sizeText": "4'6\" wide"}, {"name": "BED ROOM", "rect": [9, 119, 177, 239]}, {"name": "STAIR", "rect": [186, 119, 281.25, 239], "labelAt": [233.6, 214], "small": true, "noSize": true}], "stairs": {"flights": [{"rect": [186, 119, 224, 199], "dir": "S", "treads": 8, "label": "DN", "style": "solid"}, {"rect": [243.25, 119, 281.25, 199], "dir": "S", "treads": 8, "style": "dashed"}], "landing": [186, 199, 281.25, 239]}, "lines": [{"pts": [[281.25, 117.5], [224, 117.5], [224, 199]], "style": "rail"}], "columns": [[4.5, 4.5], [107, 4.5], [4.5, 116.75], [181.5, 116.75], [285.75, 116.75], [4.5, 243.5], [181.5, 243.5], [285.75, 243.5]], "fixtures": [{"type": "wc", "rect": [12, 72, 40, 100]}, {"type": "basin", "rect": [114, 60.5, 136, 78]}], "labels": [{"at": [55, 30], "text": "COLUMN STUB", "size": 8}, {"at": [190, 30], "text": "OPEN TERRACE  (4'8\" wide strip)", "size": 10}], "dims": [{"a": [0, 0], "b": [290.25, 0], "off": -100}, {"a": [290.25, 0], "b": [387, 0], "off": -100}, {"a": [0, 0], "b": [387, 0], "off": -128}, {"a": [0, 248], "b": [9, 248], "off": 36, "tiny": true}, {"a": [9, 248], "b": [177, 248], "off": 36}, {"a": [177, 248], "b": [186, 248], "off": 36, "tiny": true}, {"a": [186, 248], "b": [281.25, 248], "off": 36}, {"a": [281.25, 248], "b": [290.25, 248], "off": 36, "tiny": true}, {"a": [290.25, 248], "b": [387, 248], "off": 36}, {"a": [0, 0], "b": [0, 56], "off": -36}, {"a": [0, 56], "b": [0, 60.5], "off": -36, "tiny": true}, {"a": [0, 60.5], "b": [0, 114.5], "off": -36}, {"a": [0, 114.5], "b": [0, 119], "off": -36, "tiny": true}, {"a": [0, 119], "b": [0, 239], "off": -36}, {"a": [0, 239], "b": [0, 248], "off": -36, "tiny": true}, {"a": [0, 0], "b": [0, 248], "off": -68}, {"a": [387, 0], "b": [387, 248], "off": 36}]}, {"id": "RF", "name": "ROOF / UPPER TERRACE PLAN", "level": 240, "terraces": [{"name": "OPEN TERRACE", "sub": "GF roof (below)", "pts": [[0, 0], [387, 0], [387, 248], [290.25, 248], [290.25, 56], [0, 56]], "labelAt": [338, 150], "light": true}, {"name": "UPPER TERRACE", "sub": "on first-floor roof - NO ACCESS YET", "pts": [[0, 56], [290.25, 56], [290.25, 248], [0, 248]], "labelAt": [145, 140]}], "parapets": [{"a": [0, 2.25], "b": [387, 2.25], "t": 4.5}, {"a": [384.75, 0], "b": [384.75, 248], "t": 4.5}, {"a": [290.25, 245.75], "b": [387, 245.75], "t": 4.5}, {"a": [2.25, 0], "b": [2.25, 56], "t": 4.5}], "outlines": [{"pts": [[0, 56], [290.25, 56], [290.25, 248], [0, 248]], "closed": true, "style": "solid"}], "columns": [[4.5, 4.5], [107, 4.5]], "labels": [{"at": [145, 175], "text": "External stair / ladder position: TO BE DESIGNED", "size": 10}, {"at": [55, 30], "text": "COLUMN STUB", "size": 8}], "dims": [{"a": [0, 0], "b": [290.25, 0], "off": -100}, {"a": [290.25, 0], "b": [387, 0], "off": -100}, {"a": [0, 0], "b": [387, 0], "off": -128}, {"a": [0, 0], "b": [0, 56], "off": -36}, {"a": [0, 56], "b": [0, 248], "off": -36}, {"a": [0, 0], "b": [0, 248], "off": -68}]}]};</script>
 <script type="module">
@@ -378,7 +402,10 @@ function buildWall(w, openings, base, parent) {
     B(os, oe, 0, sill);
     B(os, oe, head, H);
     if (o.type === 'door') {
-      if (out !== undefined) B(os, oe, 0, head, c - 0.8, c + 0.8, mat.door);  // exterior doors shown closed
+      if (out !== undefined) {                                                 // exterior doors shown closed
+        const leaf = B(os, oe, 0, head, c - 0.8, c + 0.8, mat.door);
+        if (leaf) { leaf.userData.door = o.id; doorLeaves.push(leaf); }
+      }
     } else {
       B(os, oe, sill, head, c - 0.4, c + 0.4, mat.glass);
       for (let a = os + 5; a < oe - 2; a += 5) B(a - 0.35, a + 0.35, sill, head, c + (out || 1) * (t / 2 - 1.2), c + (out || 1) * (t / 2 - 0.5), mat.grill);
@@ -401,6 +428,7 @@ function buildWall(w, openings, base, parent) {
 }
 
 // ------------------------------------------------------------------ static house
+const doorLeaves = [];
 const house = new THREE.Group(); root.add(house);
 const roofGroup = new THREE.Group(); root.add(roofGroup);
 const siteGroup = new THREE.Group(); root.add(siteGroup);
@@ -1167,6 +1195,226 @@ function bindUI() {
   on('nextOpt', 'click', () => step(1));
 }
 
+// ------------------------------------------------------------------ walk mode (go inside and roam around)
+// Two levels: G = ground floor + front yard, F = first floor + open terrace. Stairs are by button for now.
+const EYE = 63, BODY = 7, WALK_SPEED = 58, TURN_SPEED = 1.7;          // inches, inches, in/s, rad/s
+const walk = { on: false, level: 'G', x: 164, y: 30, yaw: Math.PI, pitch: 0, h: 0, keys: {}, joy: { x: 0, y: 0 }, lights: new THREE.Group(), saved: null };
+walk.lights.visible = false; root.add(walk.lights);
+
+// solid wall pieces for one floor; doors that pass(o, w) are left open
+function wallRects(floor, pass) {
+  const rects = [];
+  for (const w of floor.walls) {
+    const horiz = w.a[1] === w.b[1], c = horiz ? w.a[1] : w.a[0];
+    const ends = horiz ? [w.a[0], w.b[0]] : [w.a[1], w.b[1]];
+    const push = (a, b) => { if (b - a > 0.1) rects.push(horiz ? [a, c - w.t / 2, b, c + w.t / 2] : [c - w.t / 2, a, c + w.t / 2, b]); };
+    let cur = Math.min(...ends);
+    floor.openings.filter(o => o.wall === w.id && o.type === 'door' && pass(o, w)).sort((a, b) => a.start - b.start)
+      .forEach(o => { push(cur, o.start); cur = o.start + o.width; });
+    push(cur, Math.max(...ends));
+  }
+  return rects;
+}
+const solidFixtures = fl => (fl.fixtures || []).filter(f => f.type === 'platform' || f.type === 'wc').map(f => f.rect);
+const WALK = (() => {
+  const [gf, ff, rf] = model.floors;
+  const st = gf.stairs;
+  return {
+    G: { walls: wallRects(gf, (o, w) => w.out === undefined || o.id === 'D'),          // only the main door leads outside
+         blocks: [...st.flights.map(f => f.rect), st.landing, ...solidFixtures(gf)], rooms: gf.rooms, ext: [-40, -144, 427, 248] },
+    F: { walls: wallRects(ff, () => true),
+         blocks: [STAIR_HOLE, ...solidFixtures(ff), ...rf.columns.map(([x, y]) => [x - 4.5, y - 4.5, x + 4.5, y + 4.5])], rooms: ff.rooms, ext: [-14, -70, 401, 258] },
+  };
+})();
+const OPEN_DOORS = ['D', 'D2f'];             // exterior doors shown open while walking (main door, terrace door)
+
+function walkFree(level, x, y) {
+  const r = BODY;
+  if (level === 'G') {
+    if (y < 0 ? (x < NEIGH[0] + r || x > NEIGH[2] - r || y < NEIGH[3] + r) : (x < 0 || x > W || y > D)) return false;
+  } else {
+    if (x < 4.5 + r || x > W - 4.5 - r || y > D - 4.5 - r) return false;
+    const d = Math.min(...frontEdge().segs.filter(([a, b]) => b >= x - r && a <= x + r).map(s => s[2]));   // front edge of the terrace here
+    if (y < -d + 4.5 + r) return false;
+  }
+  const L = WALK[level];
+  for (const list of [L.walls, L.blocks]) for (const [x1, y1, x2, y2] of list) {
+    const dx = x - Math.max(x1, Math.min(x, x2)), dy = y - Math.max(y1, Math.min(y, y2));
+    if (dx * dx + dy * dy < r * r) return false;
+  }
+  return true;
+}
+const walkFloorH = () => walk.level === 'F' ? FTF : walk.y < 0 ? -PLINTH : 0;
+
+function walkRoom() {
+  const { level, x, y } = walk;
+  const size = r => `${fmt(r[2] - r[0])} × ${fmt(r[3] - r[1])}`;
+  const nice = s => s.toLowerCase().replace(/(^|[\s/])\w/g, c => c.toUpperCase());
+  if (level === 'G' && y < 0) return `Front yard · ${fmt(-NEIGH[3])} to the neighbour`;
+  if (level === 'F' && !(x < FFBLOCK.x2 && y > FFBLOCK.y1)) {
+    if (x >= FFBLOCK.x2) return `Open terrace (east) · ${fmt(W - FFBLOCK.x2)} wide`;
+    const d = Math.max(...frontEdge().segs.filter(([a, b]) => b >= x && a <= x).map(s => s[2]));
+    return `Front terrace · ${fmt(FFBLOCK.y1 + d)} deep`;
+  }
+  const rm = WALK[level].rooms.find(r => x >= r.rect[0] - 5 && x <= r.rect[2] + 5 && y >= r.rect[1] - 5 && y <= r.rect[3] + 5);
+  return rm ? `${nice(rm.name)} · ${size(rm.rect)}` : level === 'G' ? 'Ground floor' : 'First floor';
+}
+
+// places to jump to: [label, level, x, y, facing (0 = north, π = south, -π/2 = east)]
+const WALK_PLACES = [
+  ['Main door (inside)', 'G', 164, 30, Math.PI], ['Hall / living', 'G', 256, 62, Math.PI / 2], ['Bed room', 'G', 150, 135, 2.3],
+  ['Kitchen', 'G', 315, 135, Math.PI], ['Toilet', 'G', 101, 55, 1.2], ['Wash', 'G', 100, 94, Math.PI / 2],
+  ['Foot of the stairs', 'G', 233, 92, Math.PI], ['Front yard (look at the house)', 'G', 164, -118, Math.PI],
+  ['Top of the stairs', 'F', 205, 105, 0], ['Passage', 'F', 150, 86, -Math.PI / 2], ['Bed room', 'F', 150, 135, 2.3],
+  ['Toilet', 'F', 80, 100, 0.6], ['Front terrace', 'F', 224, 20, 0], ['Open terrace (east)', 'F', 338, 150, Math.PI],
+];
+function walkGo(level, x, y, yaw) {
+  Object.assign(walk, { level, x, y, yaw, pitch: 0 }); walk.h = walkFloorH();
+  document.getElementById('walkFloor').textContent = level === 'G' ? '▲ Go upstairs' : '▼ Go downstairs';
+  drawWalkMap(true);
+}
+
+function buildWalkScene() {
+  // simple fixtures so rooms can be recognised (kitchen platform, sink, stove, WC, basin)
+  const white = std(0xf2f0ea, { roughness: 0.4 }), top = std(0x2c2b2a, { roughness: 0.35 });
+  model.floors.slice(0, 2).forEach((fl, i) => (fl.fixtures || []).forEach(({ type, rect: [x1, y1, x2, y2] }) => {
+    const b = i * FTF;
+    if (type === 'platform') { box(x1, x2, y1, y2, b, b + 31, mat.plinth, house); box(x1 - 0.5, x2 + 0.5, y1 - 0.5, y2 + 0.5, b + 31, b + 33, top, house); }
+    if (type === 'sink') box(x1, x2, y1, y2, b + 32.5, b + 33.4, mat.steel, house);
+    if (type === 'stove') { box(x1, x2, y1 + 3, y2 - 3, b + 33, b + 36, mat.steel, house); [0.28, 0.72].forEach(k => cyl(x1 + (x2 - x1) * k, (y1 + y2) / 2, 3.5, 3.5, b + 36, b + 36.8, top, house, 14)); }
+    if (type === 'wc') { box(x1 + 4, x2 - 4, y1 + 4, y2, b, b + 16, white, house); box(x1 + 4, x2 - 4, y1, y1 + 8, b, b + 30, white, house); }
+    if (type === 'basin') { box(x1, x2, y1, y2, b + 28, b + 34, white, house); box((x1 + x2) / 2 - 2, (x1 + x2) / 2 + 2, (y1 + y2) / 2 - 2, (y1 + y2) / 2 + 2, b, b + 28, white, house); }
+  }));
+  // one ceiling lamp per room, only lit in walk mode
+  model.floors.slice(0, 2).forEach((fl, i) => fl.rooms.forEach(({ rect: [x1, y1, x2, y2] }) => {
+    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, big = (x2 - x1) * (y2 - y1) > 12000;
+    const lamp = new THREE.PointLight(0xfff0d8, big ? 26 : 14, 26, 1.8);
+    lamp.position.set(cx, i * FTF + H - 16, cy); walk.lights.add(lamp);
+    const bulb = cyl(cx, cy, 5, 5, i * FTF + H - 1.5, i * FTF + H, mat.led, walk.lights, 16); bulb.castShadow = false;
+  }));
+}
+
+function setWalk(on) {
+  if (on === walk.on) return;
+  walk.on = on;
+  document.body.classList.toggle('walk', on);
+  document.getElementById('walkHud').hidden = !on;
+  controls.enabled = !on;
+  walk.lights.visible = on;
+  labelRenderer.domElement.style.display = on ? 'none' : '';
+  doorLeaves.forEach(m => { if (OPEN_DOORS.includes(m.userData.door)) m.visible = !on; });
+  Object.assign(mat.glass, on ? { transparent: true, opacity: 0.28, depthWrite: false } : { transparent: false, opacity: 1, depthWrite: true });
+  mat.glass.needsUpdate = true;
+  if (on) {
+    walk.saved = { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov };
+    roofGroup.visible = true; roofDesign.visible = true;                 // the first floor needs its ceiling
+    camera.near = 0.12; camera.fov = 72;
+    document.activeElement?.blur();
+    walkGo('G', 164, 30, Math.PI);
+    const hint = document.getElementById('walkHint'); hint.style.opacity = 1; setTimeout(() => { hint.style.opacity = 0; }, 7000);
+  } else {
+    camera.near = 0.3; camera.fov = walk.saved.fov; camera.rotation.order = 'XYZ';
+    camera.position.copy(walk.saved.pos); controls.target.copy(walk.saved.target);
+    applyToggles(); controls.update();
+  }
+  camera.updateProjectionMatrix(); resize();
+}
+
+function walkTick(dt) {
+  const k = walk.keys, j = walk.joy;
+  const dead = v => Math.abs(v) < 0.15 ? 0 : v;
+  const fwd = (k.fwd ? 1 : 0) - (k.back ? 1 : 0) - dead(j.y);
+  const side = (k.right ? 1 : 0) - (k.left ? 1 : 0);
+  walk.yaw += ((k.turnL ? 1 : 0) - (k.turnR ? 1 : 0) - dead(j.x)) * TURN_SPEED * dt;
+  if (fwd || side) {
+    const s = Math.sin(walk.yaw), c = Math.cos(walk.yaw), v = WALK_SPEED * dt / Math.max(1, Math.hypot(fwd, side));
+    const nx = walk.x + (-s * fwd + c * side) * v, ny = walk.y + (-c * fwd - s * side) * v;
+    if (walkFree(walk.level, nx, walk.y)) walk.x = nx;
+    if (walkFree(walk.level, walk.x, ny)) walk.y = ny;
+  }
+  walk.h += (walkFloorH() - walk.h) * Math.min(1, dt * 9);
+  camera.position.set(walk.x * IN, (walk.h + EYE) * IN, walk.y * IN);
+  camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
+  drawWalkMap(false);
+}
+
+// small plan of the current level with a "you are here" marker; tap it to jump
+const walkMapState = { key: '' };
+function walkMapXf() {
+  const cv = document.getElementById('walkMap'), [x1, y1, x2, y2] = WALK[walk.level].ext;
+  const s = Math.min(cv.width / (x2 - x1), cv.height / (y2 - y1));
+  const ox = (cv.width - (x2 - x1) * s) / 2 - x1 * s, oy = (cv.height - (y2 - y1) * s) / 2 - y1 * s;
+  return { cv, s, ox, oy };
+}
+function drawWalkMap(force) {
+  const key = `${walk.level}|${walk.x.toFixed(0)}|${walk.y.toFixed(0)}|${walk.yaw.toFixed(2)}`;
+  if (!force && key === walkMapState.key) return;
+  walkMapState.key = key;
+  document.getElementById('walkRoom').textContent = `${walk.level === 'G' ? 'Ground floor' : 'First floor'} · ${walkRoom()}`;
+  const { cv, s, ox, oy } = walkMapXf(), g = cv.getContext('2d'), L = WALK[walk.level];
+  const R = (c, [x1, y1, x2, y2]) => { g.fillStyle = c; g.fillRect(ox + x1 * s, oy + y1 * s, (x2 - x1) * s, (y2 - y1) * s); };
+  g.clearRect(0, 0, cv.width, cv.height);
+  if (walk.level === 'G') { R('#e4dfd2', [NEIGH[0], NEIGH[3], NEIGH[2], 0]); R('#ffffff', [0, 0, W, D]); }
+  else { frontEdge().segs.forEach(([a, b, d]) => R('#e9e2d2', [a, -d, b, 0])); R('#e9e2d2', [0, 0, W, D]); R('#ffffff', [FFBLOCK.x1, FFBLOCK.y1, FFBLOCK.x2, FFBLOCK.y2]); }
+  L.blocks.forEach(b => R('#c9c4b8', b));
+  L.walls.forEach(w => R('#3a3733', w));
+  const px = ox + walk.x * s, py = oy + walk.y * s, a = walk.yaw;
+  g.fillStyle = '#b5452f'; g.beginPath();
+  g.moveTo(px - Math.sin(a) * 13, py - Math.cos(a) * 13);
+  g.lineTo(px - Math.sin(a + 2.5) * 9, py - Math.cos(a + 2.5) * 9);
+  g.lineTo(px - Math.sin(a - 2.5) * 9, py - Math.cos(a - 2.5) * 9);
+  g.closePath(); g.fill();
+}
+
+function bindWalk() {
+  const $ = id => document.getElementById(id);
+  $('walkBtn').addEventListener('click', () => setWalk(true));
+  $('walkExit').addEventListener('click', () => setWalk(false));
+  $('walkFloor').addEventListener('click', () => walk.level === 'G' ? walkGo('F', 205, 105, 0) : walkGo('G', 262, 98, Math.PI));
+  const go = $('walkGo');
+  go.innerHTML = '<option value="">Go to…</option>' + ['G', 'F'].map(lv => `<optgroup label="${lv === 'G' ? 'Ground floor' : 'First floor'}">`
+    + WALK_PLACES.map((p, i) => p[1] === lv ? `<option value="${i}">${p[0]}</option>` : '').join('') + '</optgroup>').join('');
+  go.addEventListener('change', () => { const p = WALK_PLACES[go.value]; if (p) walkGo(p[1], p[2], p[3], p[4]); go.value = ''; go.blur(); });
+
+  const KEYS = { ArrowUp: 'fwd', KeyW: 'fwd', ArrowDown: 'back', KeyS: 'back', ArrowLeft: 'turnL', ArrowRight: 'turnR', KeyA: 'left', KeyD: 'right', KeyQ: 'turnL', KeyE: 'turnR' };
+  addEventListener('keydown', e => {
+    if (!walk.on) return;
+    if (e.code === 'Escape') return setWalk(false);
+    if (KEYS[e.code] && e.target.tagName !== 'SELECT') { walk.keys[KEYS[e.code]] = true; e.preventDefault(); }
+  });
+  addEventListener('keyup', e => { if (KEYS[e.code]) walk.keys[KEYS[e.code]] = false; });
+  addEventListener('blur', () => { walk.keys = {}; });
+
+  // drag on the picture to look around
+  const el = renderer.domElement; let look = null;
+  el.addEventListener('pointerdown', e => { if (walk.on) { look = { id: e.pointerId, x: e.clientX, y: e.clientY }; try { el.setPointerCapture(e.pointerId); } catch {} } });
+  el.addEventListener('pointermove', e => {
+    if (!walk.on || !look || e.pointerId !== look.id) return;
+    walk.yaw += (e.clientX - look.x) * 0.005; walk.pitch = Math.max(-1.2, Math.min(1.2, walk.pitch + (e.clientY - look.y) * 0.005));
+    look.x = e.clientX; look.y = e.clientY;
+  });
+  ['pointerup', 'pointercancel'].forEach(t => el.addEventListener(t, e => { if (look && e.pointerId === look.id) look = null; }));
+
+  // joystick: up / down walks, left / right turns
+  const joy = $('joy'), knob = $('joyKnob'); let jid = null;
+  const setJoy = e => {
+    const b = joy.getBoundingClientRect(), R = b.width / 2 - 22;
+    let dx = e.clientX - (b.left + b.width / 2), dy = e.clientY - (b.top + b.height / 2);
+    const m = Math.hypot(dx, dy); if (m > R) { dx *= R / m; dy *= R / m; }
+    walk.joy = { x: dx / R, y: dy / R }; knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+  joy.addEventListener('pointerdown', e => { jid = e.pointerId; try { joy.setPointerCapture(jid); } catch {} setJoy(e); e.preventDefault(); });
+  joy.addEventListener('pointermove', e => { if (e.pointerId === jid) setJoy(e); });
+  ['pointerup', 'pointercancel'].forEach(t => joy.addEventListener(t, e => { if (e.pointerId === jid) { jid = null; walk.joy = { x: 0, y: 0 }; knob.style.transform = ''; } }));
+
+  // tap the map to jump there
+  $('walkMap').addEventListener('click', e => {
+    const { cv, s, ox, oy } = walkMapXf(), b = cv.getBoundingClientRect();
+    const x = ((e.clientX - b.left) * cv.width / b.width - ox) / s, y = ((e.clientY - b.top) * cv.height / b.height - oy) / s;
+    if (walkFree(walk.level, x, y)) { walk.x = x; walk.y = y; walk.h = walkFloorH(); }
+  });
+}
+
 function resize() {
   const w = app.clientWidth, h = app.clientHeight;
   renderer.setSize(w, h); labelRenderer.setSize(w, h);
@@ -1174,13 +1422,26 @@ function resize() {
 }
 
 buildHouse();
+buildWalkScene();
 bindUI();
+bindWalk();
 applyToggles();
 buildDesign();
 buildRoof();
 setView(params.get('view') || 'corner');
 addEventListener('resize', resize); resize();
-renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); });
+if (params.get('walk')) {                 // open straight into walk mode, e.g. ?walk=1&wl=F&wx=224&wy=20&wyaw=0
+  setWalk(true);
+  if (params.get('wx')) walkGo(params.get('wl') || 'G', +params.get('wx'), +params.get('wy'), +(params.get('wyaw') || 0));
+}
+window.houseDebug = { walk, walkFree, walkGo, setWalk, WALK_PLACES };   // for testing from the console
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (walk.on) walkTick(dt); else controls.update();
+  renderer.render(scene, camera);
+  if (!walk.on) labelRenderer.render(scene, camera);
+});
 document.body.dataset.ready = '1';
 
 </script>

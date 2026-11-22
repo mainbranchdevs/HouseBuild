@@ -82,10 +82,16 @@
   <label class="opt"><input type="radio" name="opt" value="N"><b>N · Exposed brick + planters</b><small>Brick pillars, planter trough as the balcony edge, planters at the base.</small></label>
   <div class="row" id="bayRow"><span>Bay width</span>
     <select id="bay">
+      <option value="72">6'0" (compact)</option>
       <option value="144">12'0"</option>
       <option value="168">14'0" (covers door + window)</option>
       <option value="182">15'2" (aligns to column stub)</option>
       <option value="192">16'0"</option>
+    </select></div>
+  <div class="row" id="bayPosRow"><span>Bay centred on</span>
+    <select id="bayPos">
+      <option value="centre">Centre of the building</option>
+      <option value="door">Main door</option>
     </select></div>
 
 
@@ -170,6 +176,7 @@ const state = {
   roofDesign: params.get('rd') || 'R0', // upper terrace design R0..R4 (see ROOFS)
   access: params.get('ac') || 'none',   // none | straight | spiral
   bay: +(params.get('w') || 168),       // bay width in inches
+  bayPos: params.get('bc') || 'centre', // centre (of the building) | door (centred on the main door)
   parapet: params.get('par') || 'railH',// solid | railV | railH
   pillar: +(params.get('p') || 12),     // pillar size inches
   pillarFinish: params.get('pf') || 'white',
@@ -560,8 +567,11 @@ function pillar(style, x, y, P, top, parent, side = 1) {
   }
 }
 
+const mainDoor = () => { const d = model.floors[0].openings.find(o => o.id === 'D'); return [d.start, d.start + d.width]; };
 function frontEdge() {
-  const b1 = CX - state.bay / 2, b2 = CX + state.bay / 2;
+  const [dA, dB] = mainDoor();
+  const c = Math.min(W - state.bay / 2, Math.max(state.bay / 2, state.bayPos === 'door' ? (dA + dB) / 2 : CX));
+  const b1 = c - state.bay / 2, b2 = c + state.bay / 2;
   const f = FRONTS[state.option];
   if (f.full) return { segs: [[0, W, MAXP]], bay: null };
   if (!f.bay) return { segs: [[0, W, EXIST]], bay: null };
@@ -685,8 +695,9 @@ function buildDesign() {
       box(b1 + P, b2 - P, -MAXP + P * 0.9, -MAXP + P * 0.9 + 1.5, H - 2, H - 0.5, mat.led, design);
     }
     if (f.louver) {                      // M: vertical wood fins screening the window side + flat canopy
-      const g = -PLINTH, topH = FTF + 96, f1 = b2 - 52;
-      for (let i = 0; i < 8; i++) { const x = f1 + i * (52 - 2.5) / 7; box(x, x + 2.5, -MAXP, -MAXP + 9, g + 4, topH, mat.pillar, design); }
+      const lw = b2 - b1 >= 144 ? 52 : Math.round((b2 - b1) * 0.31), n = Math.max(3, Math.round(lw / 6.5));   // narrower screen on a narrow bay
+      const g = -PLINTH, topH = FTF + 96, f1 = b2 - lw;
+      for (let i = 0; i < n; i++) { const x = f1 + i * (lw - 2.5) / (n - 1); box(x, x + 2.5, -MAXP, -MAXP + 9, g + 4, topH, mat.pillar, design); }
       box(f1 - 1, b2 + 1, -MAXP - 0.5, -MAXP + 9.5, g, g + 4, mat.steel, design);
       box(b1, b1 + 8, -MAXP, -MAXP + 8, g, topH, mat.accent, design);                                     // slim post
       box(b1 - 2, b1 + 10, -MAXP - 2, -MAXP + 10, g, g + 8, mat.steel, design);
@@ -930,7 +941,7 @@ function buildLabels(bay) {
   label(`Open yard: ${fmt(-NEIGH[3])} to neighbour`, W + 30, 0, NEIGH[3] / 2, labelGroup);
   label(`Clear after balcony: ${fmt(-NEIGH[3] - depth)}`, CX, 0, (NEIGH[3] - depth) / 2, labelGroup, 'muted');
   label(`Front terrace ${fmt(56 + depth)} deep`, 40, FTF + 50, (56 - depth) / 2, labelGroup);
-  if (bay) label(`Bay ${fmt(bay[1] - bay[0])} wide`, CX, H - 24, -MAXP - 2, labelGroup, 'accent');
+  if (bay) label(`Bay ${fmt(bay[1] - bay[0])} wide`, (bay[0] + bay[1]) / 2, H - 24, -MAXP - 2, labelGroup, 'accent');
   label('Neighbouring building', CX, 2 * FTF + 20, (NEIGH[1] + NEIGH[3]) / 2, labelGroup, 'muted');
 }
 
@@ -942,7 +953,16 @@ function updateFacts(bay) {
     ['New slab added', !(f.bay || f.full) ? 'none' : `${fmt(MAXP - EXIST)} deep × ${f.full ? fmt(W) : fmt(bay[1] - bay[0])}`],
     ['Clear yard in front', fmt(-NEIGH[3] - depth)],
   ];
-  if (bay) rows.push(['Bay position', `${fmt(bay[0])} to ${fmt(bay[1])} from west corner`]);
+  if (bay) {
+    rows.push(['Bay position', `${fmt(bay[0])} to ${fmt(bay[1])} from west corner`]);
+    // does a corner pillar stand in the path to the main door? (pillars are 5'0" out from the door)
+    const [dA, dB] = mainDoor(), P = state.pillar;
+    const pil = [[bay[0], bay[0] + P], [bay[1] - P, bay[1]]];
+    const cover = pil.reduce((t, [a, b]) => t + Math.max(0, Math.min(b, dB) - Math.max(a, dA)), 0);
+    const middle = pil.some(([a, b]) => a > dA + 8 && b < dB - 8);
+    rows.push(['Main door', middle ? '<span style="color:#b5452f">⚠ a pillar stands in front of the door</span>'
+      : cover > 0 ? `pillars overlap the door edges, ${fmt(dB - dA - cover)} clear` : 'clear of pillars']);
+  }
   document.getElementById('optName').textContent = `${state.option} · ${f.name}`;
   rows.push(['Upper terrace', `${fmt(FFBLOCK.x2 - FFBLOCK.x1)} × ${fmt(FFBLOCK.y2 - FFBLOCK.y1)} · ${ROOFS[state.roofDesign]}`]);
   rows.push(['Roof access', { none: 'none yet', straight: `straight steel stair, 3'0" wide, 15 risers of 8"`, spiral: `spiral stair, 5'0" dia, 16 risers of 7½"` }[state.access]]);
@@ -980,7 +1000,7 @@ function applyToggles() {
   roofGroup.visible = state.roof; roofDesign.visible = state.roof;
   mat.wall.color.setHex(FACADES[state.facade]);
   mat.pillar.color.setHex(PILLARS[state.pillarFinish]); mat.pillarFlat.color.setHex(PILLARS[state.pillarFinish]);
-  document.getElementById('bayRow').style.display = FRONTS[state.option].bay ? '' : 'none';
+  ['bayRow', 'bayPosRow'].forEach(id => { document.getElementById(id).style.display = FRONTS[state.option].bay ? '' : 'none'; });
   setSun();
 }
 
@@ -1006,7 +1026,7 @@ function bindUI() {
     const el = document.getElementById(id); el.value = String(state[key]);
     el.addEventListener('change', () => { state[key] = num ? +el.value : el.value; applyToggles(); if (rebuild) buildDesign(); });
   };
-  sel('bay', 'bay', true, true); sel('parapet', 'parapet', false, true);
+  sel('bay', 'bay', true, true); sel('bayPos', 'bayPos', false, true); sel('parapet', 'parapet', false, true);
   document.getElementById('parapet').addEventListener('change', buildRoof); sel('pillar', 'pillar', true, true);
   sel('pillarFinish', 'pillarFinish', false, false); sel('facade', 'facade', false, false);
   const hr = document.getElementById('hour'); hr.value = state.hour;

@@ -69,16 +69,16 @@
   <label class="opt"><input type="radio" name="opt" value="A"><b>A · Keep existing edge</b><small>No new slab. Railing on the existing 3'9" edge.</small></label>
   <label class="opt"><input type="radio" name="opt" value="B"><b>B · Full width to 5'0"</b><small>Adds a 1'3" strip along the whole 32'3" front, 4 pillars.</small></label>
   <label class="opt"><input type="radio" name="opt" value="C"><b>C · Central box bay</b><small>Middle steps out to 5'0", one pillar at each corner.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="D"><b>D · Bay + portal frame</b><small>Pillars rise to roof level with a beam and pergola.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="D"><b>D · Bay + portal frame</b><small>Pillars rise to roof level with a beam and pergola. Needs tall pillars.</small></label>
   <label class="opt"><input type="radio" name="opt" value="E"><b>E · Modern box portico</b><small>Wood-clad pillars, deep white box fascia, LED strip, glass railing. (Your image 1)</small></label>
   <label class="opt"><input type="radio" name="opt" value="F"><b>F · Classical portico</b><small>Round fluted columns, beam with dentils and cornice. (Your image 2)</small></label>
   <label class="opt"><input type="radio" name="opt" value="G"><b>G · Indian ornate portico</b><small>Square carved pillars with brackets, rosette band, arch at the door. (Your image 3)</small></label>
-  <label class="opt"><input type="radio" name="opt" value="H"><b>H · Stone frame · floating box</b><small>Full-height stone fins and a roof slab over the bay, glass railing.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="H"><b>H · Stone frame · floating box</b><small>Full-height stone fins and a roof slab over the bay, glass railing. Needs tall pillars.</small></label>
   <label class="opt"><input type="radio" name="opt" value="I"><b>I · Jaali screen portico</b><small>Terracotta lattice screens at the sides and as the balcony guard. Privacy with air flow.</small></label>
   <label class="opt"><input type="radio" name="opt" value="J"><b>J · Twin-pillar contemporary</b><small>Pairs of slim dark pillars tied with wood bands. Light and modern.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="K"><b>K · Tiled roof portico</b><small>Wooden posts on stone bases, sloping clay-tile roof over the balcony. Traditional.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="K"><b>K · Tiled roof portico</b><small>Wooden posts on stone bases, sloping clay-tile roof over the balcony. Traditional. Needs tall pillars.</small></label>
   <label class="opt"><input type="radio" name="opt" value="L"><b>L · Grand arch portico</b><small>One wide arch between two round columns, baluster railing above.</small></label>
-  <label class="opt"><input type="radio" name="opt" value="M"><b>M · Louver screen + flat canopy</b><small>Tall wood fins screen the window side; slim flat roof covers the balcony.</small></label>
+  <label class="opt"><input type="radio" name="opt" value="M"><b>M · Louver screen + flat canopy</b><small>Tall wood fins screen the window side; slim flat roof covers the balcony. Needs tall pillars.</small></label>
   <label class="opt"><input type="radio" name="opt" value="N"><b>N · Exposed brick + planters</b><small>Brick pillars, planter trough as the balcony edge, planters at the base.</small></label>
   <div class="row" id="bayRow"><span>Bay width</span>
     <select id="bay">
@@ -135,6 +135,8 @@
         <option value="glass">6" curb + glass railing</option>
       </optgroup>
     </select></div>
+  <div class="row"><label><input type="checkbox" id="tPillars"> Pillars (untick to remove)</label></div>
+  <div class="row"><label><input type="checkbox" id="tPillarCap"> Stop pillars at ground-floor height</label></div>
   <div class="row"><span>Pillar size</span>
     <select id="pillar"><option value="9">9" × 9"</option><option value="12">12" × 12"</option><option value="15">15" × 15"</option></select></div>
   <div class="row"><span>Pillar finish</span>
@@ -191,6 +193,8 @@ const state = {
   bayPos: params.get('bc') || 'centre', // centre (of the building) | door (centred on the main door)
   parapet: params.get('par') || 'railH',// solid | railV | railH
   pillar: +(params.get('p') || 12),     // pillar size inches
+  pillars: params.get('pl') !== '0',    // false = no pillars at all
+  pillarCap: params.get('pc') !== '0',  // true = pillars stop under the first-floor slab (ground-floor height)
   pillarFinish: params.get('pf') || 'white',
   facade: params.get('fa') || 'grey',
   hour: +(params.get('h') || 10),
@@ -669,6 +673,8 @@ function buildDesign() {
   const f = FRONTS[state.option];
   const base = FTF, P = state.pillar, T = 4.5;
   const { segs, bay } = frontEdge();
+  const showP = state.pillars, cap = state.pillarCap;   // cap: no part of a pillar rises above the ground-floor ceiling
+  const capTop = t => cap ? Math.min(t, H) : t;
   const solidUpstand = f.fascia === 'box' || f.fascia === 'frieze' || !!f.ownGuard;   // the design builds the bay's own guard
 
   // new slab (only 1'3" beyond the existing 3'9" edge)
@@ -689,15 +695,17 @@ function buildDesign() {
   parapet(FFBLOCK.x2, D - T, W - T, D, base, design);
 
   // full-width option: four plain pillars
-  if (f.full) [[0, -MAXP], [W - P, -MAXP], [CX - 84, -MAXP], [CX + 84 - P, -MAXP]]
-    .forEach(([x, y]) => pillar('square', x, y, P, FTF + 38, design));
+  if (f.full && showP) [[0, -MAXP], [W - P, -MAXP], [CX - 84, -MAXP], [CX + 84 - P, -MAXP]]
+    .forEach(([x, y]) => pillar('square', x, y, P, capTop(FTF + 38), design));
 
   if (bay) {
     const [b1, b2] = bay;
     const pTop = { box: H - 14, entablature: H - 18, frieze: H - 20 }[f.fascia]
       ?? (f.portal ? 2 * FTF + 8 : f.bigArch ? H - 44 : FTF + 38);
-    pillar(f.pillar, b1, -MAXP, P, pTop, design, 1);
-    pillar(f.pillar, b2 - P, -MAXP, P, pTop, design, -1);
+    if (showP) {
+      pillar(f.pillar, b1, -MAXP, P, capTop(pTop), design, 1);
+      pillar(f.pillar, b2 - P, -MAXP, P, capTop(pTop), design, -1);
+    }
 
     if (f.fascia === 'box') {            // E: deep white box with LED strip (image 1)
       box(b1 - 2, b2 + 2, -MAXP - 2, -MAXP + 8, H - 14, FTF + 36, mat.accent, design);
@@ -733,7 +741,7 @@ function buildDesign() {
       const a = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 9, bevelEnabled: false, curveSegments: 24 }), mat.cream);
       a.position.set(xc, spring, -11); a.castShadow = true; design.add(a);
     }
-    if (f.portal) {                      // D: pillars to roof, beam + pergola back to the first-floor wall
+    if (f.portal && showP && !cap) {                      // D: pillars to roof, beam + pergola back to the first-floor wall
       box(b1, b2, -MAXP, -MAXP + P, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design);
       [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, FFBLOCK.y1, 2 * FTF - 4, 2 * FTF + 8, mat.pillar, design));
       for (let y = -MAXP + P + 8; y < FFBLOCK.y1 - 4; y += 14)
@@ -752,24 +760,27 @@ function buildDesign() {
       box(b1 + P, b2 - P, yf - 1, yf + 4, FTF, FTF + 6, mat.accent, design);
       lattice(b1 + P, b2 - P, yf, yf + 3, FTF + 6, FTF + 36, design, mat.jaali);
       box(b1 + P, b2 - P, yf - 1.5, yf + 4.5, FTF + 36, FTF + 38, mat.trim, design);
+      if (cap || !showP) [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, -MAXP + P, FTF, FTF + 38, mat.accent, design));   // guard corner posts
     }
-    if (f.tiled) {                       // K: wooden posts + sloping clay-tile roof over the balcony
+    if (f.tiled && showP) {                       // K: wooden posts + sloping clay-tile roof over the balcony
       const yLow = -MAXP - 14, hLow = FTF + 84, yHigh = FFBLOCK.y1, hHigh = FTF + 108;
       const roofH = y => hLow + (y - yLow) * (hHigh - hLow) / (yHigh - yLow);
-      const yp = -MAXP + P / 2, top = roofH(yp) - 3;
+      const yp = -MAXP + P / 2, top = cap ? H + 6 : roofH(yp) - 3;
       [b1, b2 - P].forEach(x => {
         box(x, x + P, -MAXP, -MAXP + P, -PLINTH, top - 6, mat.pillar, design);
         box(x - 3, x + P + 3, -MAXP - 3, -MAXP + P + 3, -PLINTH, -PLINTH + 26, mat.stoneClad, design);
         box(x - 2, x + P + 2, -MAXP - 2, -MAXP + P + 2, top - 10, top - 6, mat.pergola, design);
       });
+      if (!cap) {
       box(b1 - 8, b2 + 8, yp - 3.5, yp + 3.5, top - 6, top, mat.pergola, design);          // front beam
       box(b1 - 8, b2 + 8, yHigh - 5, yHigh, hHigh - 9, hHigh - 3, mat.pergola, design);     // wall plate
       for (let x = b1 - 6; x <= b2 + 3; x += (b2 - b1 + 9) / 7) slopeBox(x, x + 3, yLow, hLow, yHigh, hHigh, 5, -3.5, mat.pergola, design);
       slopeBox(b1 - 12, b2 + 12, yLow, hLow, yHigh, hHigh, 2.5, 0.5, mat.tile, design);
       for (let x = b1 - 11; x < b2 + 10; x += 7) slopeBox(x, x + 3.2, yLow, hLow, yHigh, hHigh, 2.2, 2.6, mat.tileRib, design);
       box(b1 - 12, b2 + 12, yLow - 1.5, yLow + 1.5, hLow - 2, hLow + 3, mat.tileRib, design);   // eave board
+      }
     }
-    if (f.bigArch) {                     // L: one wide elliptical arch between the two columns
+    if (f.bigArch && showP) {                     // L: one wide elliptical arch between the two columns
       const spring = H - 44, xL = b1 + P, xR = b2 - P, xc = (xL + xR) / 2, ry = 34;
       [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, -MAXP + P, spring, H, mat.pillar, design));
       const sh = new THREE.Shape();
@@ -782,14 +793,18 @@ function buildDesign() {
     }
     if (f.louver) {                      // M: vertical wood fins screening the window side + flat canopy
       const lw = b2 - b1 >= 144 ? 52 : Math.round((b2 - b1) * 0.31), n = Math.max(3, Math.round(lw / 6.5));   // narrower screen on a narrow bay
-      const g = -PLINTH, topH = FTF + 96, f1 = b2 - lw;
+      const g = -PLINTH, topH = cap ? H : FTF + 96, f1 = b2 - lw;
       for (let i = 0; i < n; i++) { const x = f1 + i * (lw - 2.5) / (n - 1); box(x, x + 2.5, -MAXP, -MAXP + 9, g + 4, topH, mat.pillar, design); }
       box(f1 - 1, b2 + 1, -MAXP - 0.5, -MAXP + 9.5, g, g + 4, mat.steel, design);
-      box(b1, b1 + 8, -MAXP, -MAXP + 8, g, topH, mat.accent, design);                                     // slim post
-      box(b1 - 2, b1 + 10, -MAXP - 2, -MAXP + 10, g, g + 8, mat.steel, design);
-      box(b1 - 6, b2 + 6, -MAXP - 6, FFBLOCK.y1, topH, topH + 5, mat.accent, design);                     // flat canopy
-      box(b1 - 6.5, b2 + 6.5, -MAXP - 6.5, -MAXP - 6, topH - 1, topH + 6, mat.steel, design);
-      box(b1 + 10, f1 - 4, -MAXP + 4, -MAXP + 5.5, topH - 1.5, topH, mat.led, design);
+      if (showP) {
+        box(b1, b1 + 8, -MAXP, -MAXP + 8, g, topH, mat.accent, design);                                   // slim post
+        box(b1 - 2, b1 + 10, -MAXP - 2, -MAXP + 10, g, g + 8, mat.steel, design);
+      }
+      if (showP && !cap) {
+        box(b1 - 6, b2 + 6, -MAXP - 6, FFBLOCK.y1, topH, topH + 5, mat.accent, design);                   // flat canopy
+        box(b1 - 6.5, b2 + 6.5, -MAXP - 6.5, -MAXP - 6, topH - 1, topH + 6, mat.steel, design);
+        box(b1 + 10, f1 - 4, -MAXP + 4, -MAXP + 5.5, topH - 1.5, topH, mat.led, design);
+      }
     }
     if (f.planterFront) {                // N: brick fascia, planter trough as the balcony guard, ground planters
       box(b1, b2, -MAXP - 1, -MAXP, H - 6, FTF, mat.pillar, design);
@@ -799,17 +814,20 @@ function buildDesign() {
       for (let x = b1 + P; x <= b2 - P; x += (b2 - b1 - 2 * P - 1.5) / 4) box(x, x + 1.5, -MAXP + 15, -MAXP + 16.5, FTF + 22, FTF + 40, mat.steel, design);
       parapet(b1, -MAXP + P, b1 + T, -EXIST, base, design);
       parapet(b2 - T, -MAXP + P, b2, -EXIST, base, design);
+      if (cap || !showP) [b1, b2 - P].forEach(x => box(x, x + P, -MAXP, -MAXP + P, FTF, FTF + 38, mat.accent, design));   // guard corner piers (part of the planter guard, not the pillar)
       [[b1 - 34, b1 - 4], [b2 + 4, b2 + 34]].forEach(([a, b]) => {
         box(a, b, -MAXP + 2, -MAXP + 20, -PLINTH, -PLINTH + 20, mat.accent, design);
         box(a + 2, b - 2, -MAXP + 4, -MAXP + 18, -PLINTH + 20, -PLINTH + 34, mat.plant, design);
       });
     }
-    if (f.frame) {                       // H: full-height stone fins + floating roof slab over the bay
-      const fw = Math.max(15, P + 3);
-      box(b1, b1 + fw, -MAXP, -MAXP + 20, -PLINTH, ROOF_TOP + 14, mat.pillar, design);
-      box(b2 - fw, b2, -MAXP, -MAXP + 20, -PLINTH, ROOF_TOP + 14, mat.pillar, design);
-      box(b1, b2, -MAXP, RS.y1, ROOF_TOP - 2, ROOF_TOP + 14, mat.pillar, design);
-      box(b1 + fw, b2 - fw, -MAXP + 4, -MAXP + 5.5, ROOF_TOP - 3.5, ROOF_TOP - 2, mat.led, design);
+    if (f.frame && showP) {              // H: full-height stone fins + floating roof slab over the bay
+      const fw = Math.max(15, P + 3), ft = cap ? H : ROOF_TOP + 14;
+      box(b1, b1 + fw, -MAXP, -MAXP + 20, -PLINTH, ft, mat.pillar, design);
+      box(b2 - fw, b2, -MAXP, -MAXP + 20, -PLINTH, ft, mat.pillar, design);
+      if (!cap) {
+        box(b1, b2, -MAXP, RS.y1, ROOF_TOP - 2, ROOF_TOP + 14, mat.pillar, design);
+        box(b1 + fw, b2 - fw, -MAXP + 4, -MAXP + 5.5, ROOF_TOP - 3.5, ROOF_TOP - 2, mat.led, design);
+      }
     }
   }
   buildLabels(bay);
@@ -1043,11 +1061,18 @@ function updateFacts(bay) {
     rows.push(['Bay position', `${fmt(bay[0])} to ${fmt(bay[1])} from west corner`]);
     // does a corner pillar stand in the path to the main door? (pillars are 5'0" out from the door)
     const [dA, dB] = mainDoor(), P = state.pillar;
-    const pil = [[bay[0], bay[0] + P], [bay[1] - P, bay[1]]];
+    const pil = state.pillars ? [[bay[0], bay[0] + P], [bay[1] - P, bay[1]]] : [];
     const cover = pil.reduce((t, [a, b]) => t + Math.max(0, Math.min(b, dB) - Math.max(a, dA)), 0);
     const middle = pil.some(([a, b]) => a > dA + 8 && b < dB - 8);
     rows.push(['Main door', middle ? '<span style="color:#b5452f">⚠ a pillar stands in front of the door</span>'
       : cover > 0 ? `pillars overlap the door edges, ${fmt(dB - dA - cover)} clear` : 'clear of pillars']);
+  }
+  if (f.bay || f.full) {
+    const warn = t => `<span style="color:#b5452f">${t}</span>`;
+    rows.push(['Pillars', !state.pillars ? warn('removed · the new slab must hang without support (engineer to confirm)')
+      : state.pillarCap ? `stop under the first-floor slab, about ${fmt(H + PLINTH)} above ground` : 'as designed (may rise above the first floor)']);
+    if (state.pillars && state.pillarCap && (f.portal || f.frame || f.tiled || f.louver))
+      rows.push(['Note', warn('⚠ this design needs tall pillars. Its roof / frame above the first floor is hidden. Untick “Stop pillars at ground-floor height” to see it.')]);
   }
   { const ps = document.getElementById('parapet'); rows.push(['Railing', ps.querySelector(`option[value="${state.parapet}"]`)?.textContent ?? state.parapet]); }
   document.getElementById('optName').textContent = `${state.option} · ${f.name}`;
@@ -1120,6 +1145,11 @@ function bindUI() {
   const hl = document.getElementById('hourLbl');
   const showHr = () => { const h = Math.floor(state.hour), m = Math.round((state.hour - h) * 60); hl.textContent = `${h}:${String(m).padStart(2, '0')}`; };
   hr.addEventListener('input', () => { state.hour = +hr.value; showHr(); setSun(); }); showHr();
+  [['tPillars', 'pillars'], ['tPillarCap', 'pillarCap']].forEach(([id, key]) => {
+    const el = document.getElementById(id); el.checked = state[key];
+    el.addEventListener('change', () => { state[key] = el.checked; document.getElementById('tPillarCap').disabled = !state.pillars; buildDesign(); });
+  });
+  document.getElementById('tPillarCap').disabled = !state.pillars;
   [['tNeighbour', 'neighbour'], ['tRoof', 'roof'], ['tLabels', 'labels']].forEach(([id, key]) => {
     const el = document.getElementById(id); el.checked = state[key];
     el.addEventListener('change', () => { state[key] = el.checked; applyToggles(); buildLabels(frontEdge().bay); });

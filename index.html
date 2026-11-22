@@ -114,14 +114,26 @@
       <option value="spiral">Spiral stair 5'0" (east terrace)</option>
     </select></div>
 
-  <h2>Boundary &amp; pillars</h2>
-  <div class="row"><span>Parapet</span>
+  <h2>Railing &amp; pillars</h2>
+  <div class="row"><span>Railing</span>
     <select id="parapet">
-      <option value="solid">Solid wall 3'0"</option>
-      <option value="railV">1'6" wall + vertical railing</option>
-      <option value="railH">1'6" wall + horizontal rails</option>
-      <option value="glass">6" curb + glass railing</option>
-      <option value="baluster">Classic balusters</option>
+      <optgroup label="Cement / masonry">
+        <option value="solid">Solid wall 3'0"</option>
+        <option value="cPanel">Cement wall + panel design</option>
+        <option value="cSlot">Cement wall + slots (boxy)</option>
+        <option value="cJaali">Cement jaali (square grid)</option>
+        <option value="cRing">Cement rings</option>
+        <option value="cCross">Cement cross pattern</option>
+        <option value="cPillar">Cement square balusters</option>
+        <option value="baluster">Classic round balusters</option>
+        <option value="brickJaali">Brick honeycomb jaali</option>
+      </optgroup>
+      <optgroup label="Metal / glass">
+        <option value="railV">1'6" wall + vertical MS grill</option>
+        <option value="railH">1'6" wall + horizontal MS rails</option>
+        <option value="ssPipe">Stainless-steel pipes</option>
+        <option value="glass">6" curb + glass railing</option>
+      </optgroup>
     </select></div>
   <div class="row"><span>Pillar size</span>
     <select id="pillar"><option value="9">9" × 9"</option><option value="12">12" × 12"</option><option value="15">15" × 15"</option></select></div>
@@ -262,6 +274,9 @@ const mat = {
   tile: std(0xb5532f, { roughness: 0.8 }),
   tileRib: std(0x9a4425, { roughness: 0.8 }),
   plant: std(0x4f7a3a),
+  cement: std(0xdedad1),                       // precast / cast cement railing parts (painted light)
+  brickRail: std(0x9c4a32),
+  ss: std(0xd9dee2, { roughness: 0.3, metalness: 0.3 }),
 };
 
 // ------------------------------------------------------------------ geometry helpers (inches)
@@ -469,7 +484,7 @@ const RS = { x1: FFBLOCK.x1 - 6, x2: FFBLOCK.x2 + 6, y1: FFBLOCK.y1 - 6, y2: FFB
 function parapet(x1, y1, x2, y2, base, parent) {
   const long = (x2 - x1) >= (y2 - y1);
   const style = state.parapet;
-  const wallTop = style === 'solid' ? 36 : (style === 'glass' || style === 'baluster') ? 6 : 18;
+  const wallTop = { solid: 36, cPanel: 36, glass: 6, baluster: 6, cJaali: 6, cPillar: 6, ssPipe: 6, brickJaali: 9, cSlot: 10, cCross: 12 }[style] ?? 18;
   box(x1, x2, y1, y2, base, base + wallTop, mat.wall, parent);
   box(x1 - 1, x2 + 1, y1 - 1, y2 + 1, base + wallTop, base + wallTop + 2, mat.trim, parent);   // coping
   if (style === 'solid') return;
@@ -477,6 +492,77 @@ function parapet(x1, y1, x2, y2, base, parent) {
   const len = long ? x2 - x1 : y2 - y1, s = long ? x1 : y1;
   const seg = (a1, a2, h1, h2, m = mat.grill, t1, t2) => long ? box(a1, a2, t1 ?? cy1, t2 ?? cy2, h1, h2, m, parent)
                                                               : box(t1 ?? cx1, t2 ?? cx2, a1, a2, h1, h2, m, parent);
+  // ---- cement, brick and steel-pipe railings
+  const c = long ? (y1 + y2) / 2 : (x1 + x2) / 2, e = s + len;
+  const tA = long ? y1 : x1, tB = long ? y2 : x2;                       // full wall thickness
+  const mid = (a1, a2, h1, h2, m, half) => seg(a1, a2, h1, h2, m, c - half, c + half);
+  const full = (a1, a2, h1, h2, m) => seg(a1, a2, h1, h2, m, tA, tB);
+  const pt = a => long ? [a, c] : [c, a];                               // plan point at distance a along the run
+  const piers = (step, w, top) => { const n = Math.max(1, Math.round(len / step)); for (let i = 0; i <= n; i++) { const a = s + Math.max(0, len - w) * i / n; mid(a, a + w, base + wallTop + 2, base + top, mat.cement, w / 2); } };
+  const handrail = (h, half) => mid(s - 0.5, e + 0.5, base + h, base + 38, mat.cement, half);
+  if (style === 'cJaali') {              // cement jaali: square grid between piers
+    piers(66, 6, 34);
+    if (long) lattice(s, e, c - 1.25, c + 1.25, base + 8, base + 34, parent, mat.cement, 6.5, 1.8);
+    else lattice(c - 1.25, c + 1.25, s, e, base + 8, base + 34, parent, mat.cement, 6.5, 1.8);
+    handrail(34, 3); return;
+  }
+  if (style === 'cPillar') {             // square cement balusters with a broad handrail
+    piers(72, 7, 33);
+    for (let a = s + 6; a < e - 4; a += 8) mid(a, a + 3.5, base + 8, base + 33, mat.cement, 1.75);
+    handrail(33, 3.5); return;
+  }
+  if (style === 'cRing') {               // precast cement rings on a 1'6" wall
+    const n = Math.max(1, Math.floor(len / 14)), pitch = len / n;
+    parapet.ring ??= new THREE.TorusGeometry(5.9, 1.1, 6, 20);
+    for (let i = 0; i < n; i++) {
+      const [px, py] = pt(s + pitch * (i + 0.5));
+      const m = new THREE.Mesh(parapet.ring, mat.cement); m.position.set(px, base + 27, py);
+      if (!long) m.rotation.y = Math.PI / 2;
+      m.castShadow = true; parent.add(m);
+    }
+    handrail(34, 3); return;
+  }
+  if (style === 'cCross') {              // cement cross (X) pattern between slim posts
+    const n = Math.max(1, Math.round(len / 20)), pitch = len / n, lo = base + 14, hi = base + 34;
+    for (let i = 0; i < n; i++) {
+      const [ax, ay] = pt(s + pitch * i), [bx, by] = pt(s + pitch * (i + 1));
+      bar([ax, ay, lo], [bx, by, hi], 1.1, mat.cement, parent); bar([ax, ay, hi], [bx, by, lo], 1.1, mat.cement, parent);
+    }
+    for (let i = 0; i <= n; i++) { const a = s + Math.max(0, len - 2.5) * i / n; mid(a, a + 2.5, lo, hi, mat.cement, 1.25); }
+    handrail(34, 3); return;
+  }
+  if (style === 'cSlot') {               // boxy cement wall with vertical slots: 6" piers, about 3" gaps
+    const n = Math.max(1, Math.round(len / 9));
+    for (let i = 0; i <= n; i++) { const a = s + Math.max(0, len - 6) * i / n; full(a, a + 6, base + 12, base + 30, mat.wall); }
+    full(s, e, base + 30, base + 36, mat.wall);
+    box(x1 - 1, x2 + 1, y1 - 1, y2 + 1, base + 36, base + 38, mat.trim, parent);
+    return;
+  }
+  if (style === 'cPanel') {              // solid wall with raised plaster panel frames on both faces
+    const n = Math.max(1, Math.round(len / 44)), pitch = len / n;
+    for (let i = 0; i < n; i++) {
+      const a = s + pitch * i + 5, b = s + pitch * (i + 1) - 5;
+      if (b - a < 6) continue;
+      [[a, b, 7, 9], [a, b, 27, 29], [a, a + 2, 7, 29], [b - 2, b, 7, 29]]
+        .forEach(([p, q, h1, h2]) => seg(p, q, base + h1, base + h2, mat.cement, tA - 0.8, tB + 0.8));
+    }
+    return;
+  }
+  if (style === 'brickJaali') {          // honeycomb brickwork: each brick sits across the gap below
+    for (let k = 0; k < 8; k++) {
+      const h = base + 11 + k * 3;
+      for (let a = s - (k % 2) * 6.75; a < e; a += 13.5) { const p = Math.max(a, s), q = Math.min(a + 9, e); if (q - p > 1) full(p, q, h, h + 3, mat.brickRail); }
+    }
+    box(x1 - 1, x2 + 1, y1 - 1, y2 + 1, base + 35, base + 38, mat.cement, parent);
+    return;
+  }
+  if (style === 'ssPipe') {              // stainless-steel posts and pipes
+    const n = Math.max(1, Math.round(len / 48));
+    for (let i = 0; i <= n; i++) { const [px, py] = pt(s + 1.5 + Math.max(0, len - 3) * i / n); cyl(px, py, 1, 1, base + 8, base + 38, mat.ss, parent, 10); }
+    [16, 23, 30].forEach(h => bar([...pt(s), base + h], [...pt(e), base + h], 0.55, mat.ss, parent));
+    bar([...pt(s), base + 38.5], [...pt(e), base + 38.5], 1.2, mat.ss, parent);
+    return;
+  }
   if (style === 'glass') {
     const g1 = long ? (y1 + y2) / 2 - 0.3 : (x1 + x2) / 2 - 0.3;
     seg(s + 1, s + len - 1, base + wallTop + 2, base + 40, mat.glassPanel, g1, g1 + 0.6);
@@ -963,6 +1049,7 @@ function updateFacts(bay) {
     rows.push(['Main door', middle ? '<span style="color:#b5452f">⚠ a pillar stands in front of the door</span>'
       : cover > 0 ? `pillars overlap the door edges, ${fmt(dB - dA - cover)} clear` : 'clear of pillars']);
   }
+  { const ps = document.getElementById('parapet'); rows.push(['Railing', ps.querySelector(`option[value="${state.parapet}"]`)?.textContent ?? state.parapet]); }
   document.getElementById('optName').textContent = `${state.option} · ${f.name}`;
   rows.push(['Upper terrace', `${fmt(FFBLOCK.x2 - FFBLOCK.x1)} × ${fmt(FFBLOCK.y2 - FFBLOCK.y1)} · ${ROOFS[state.roofDesign]}`]);
   rows.push(['Roof access', { none: 'none yet', straight: `straight steel stair, 3'0" wide, 15 risers of 8"`, spiral: `spiral stair, 5'0" dia, 16 risers of 7½"` }[state.access]]);

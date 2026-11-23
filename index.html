@@ -43,6 +43,10 @@
   #walkBar { top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 206px); }
   #walkBar button, #walkBar select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fffffff2; color: var(--ink); cursor: pointer; max-width: none; }
   #walkBar #walkExit { background: var(--ink); color: #fff; border-color: var(--ink); }
+  #walkPaint { right: 10px; bottom: 56px; display: flex; flex-direction: column; gap: 5px; background: #fffffff0; border: 1px solid var(--line); border-radius: 8px; padding: 7px; }
+  #walkPaint b { font-size: 12px; color: var(--ink); }
+  #walkPaint select { font: inherit; font-size: 13px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); max-width: 190px; }
+  #walkPaint.off { opacity: .55; }
   #walkRoom { bottom: 14px; left: 50%; transform: translateX(-50%); background: #1d1d1be0; color: #fff; padding: 6px 14px; border-radius: 999px; font-weight: 600;
     white-space: nowrap; max-width: calc(100vw - 20px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
   #walkMap { top: 10px; right: 10px; width: 176px; height: 148px; background: #fffffff0; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
@@ -181,6 +185,7 @@
   <div id="walkBar"><button id="walkExit">✕ Exit walk</button><select id="walkGo"></select><button id="walkFloor">▲ Go upstairs</button></div>
   <canvas id="walkMap" width="352" height="296" title="Tap the map to jump there"></canvas>
   <div id="joy"><div id="joyKnob"></div></div>
+  <div id="walkPaint"><b id="walkPaintRoom">Colours</b><select id="walkWall" title="Wall colour of the room you are in"></select><select id="walkFlr" title="Floor of the room you are in"></select></div>
   <div id="walkRoom"></div>
   <div id="walkHint">Drag to look around.<br>Use the round pad (bottom left) or the arrow keys to walk.<br>Walk onto the staircase to climb it.</div>
 </div>
@@ -1281,10 +1286,10 @@ function walkRoom() {
 
 // places to jump to: [label, level, x, y, facing (0 = north, π = south, -π/2 = east)]
 const WALK_PLACES = [
-  ['Main door (inside)', 'G', 164, 30, Math.PI], ['Hall / living', 'G', 256, 62, Math.PI / 2], ['Bed room', 'G', 150, 135, 2.3],
+  ['Main door (inside)', 'G', 164, 30, Math.PI], ['Hall / living', 'G', 343, 47, Math.PI / 2], ['Bed room', 'G', 140, 132, 2.3],
   ['Kitchen', 'G', 315, 135, Math.PI], ['Toilet', 'G', 101, 55, 1.2], ['Wash', 'G', 100, 94, Math.PI / 2],
   ['Foot of the stairs', 'G', 262, 100, Math.PI], ['Front yard (look at the house)', 'G', 164, -118, Math.PI],
-  ['Top of the stairs', 'F', 205, 105, Math.PI, -0.55], ['Passage', 'F', 150, 86, -Math.PI / 2], ['Bed room', 'F', 150, 135, 2.3],
+  ['Top of the stairs', 'F', 205, 105, Math.PI, -0.55], ['Passage', 'F', 150, 86, -Math.PI / 2], ['Bed room', 'F', 140, 132, 2.3],
   ['Toilet', 'F', 80, 100, 0.6], ['Front terrace', 'F', 224, 20, 0], ['Open terrace (east)', 'F', 338, 150, Math.PI],
 ];
 function walkGo(level, x, y, yaw, pitch = 0) {
@@ -1292,6 +1297,59 @@ function walkGo(level, x, y, yaw, pitch = 0) {
   floorButton(); drawWalkMap(true);
 }
 function floorButton() { document.getElementById('walkFloor').textContent = mapLevel() === 'G' ? '▲ Go upstairs' : '▼ Go downstairs'; }
+
+// ---- room colours: one wall paint and one floor finish per room, kept in the link as ?rc=
+const WALL_COLS = [['Off-white', 0xf1ede4], ['Ivory', 0xf2e6c9], ['Light grey', 0xd6d6d2], ['Sky blue', 0xc9dce8], ['Mint green', 0xcfe3cc],
+  ['Peach', 0xf3d5bf], ['Lavender', 0xd9d1e6], ['Lemon yellow', 0xf1e7a8], ['Sage green', 0xb9c4a8], ['Terracotta', 0xcf9274]];
+const FLOOR_COLS = [['Beige vitrified tile', 0xe3d7c3], ['White marble', 0xeeece7], ['Grey tile', 0xb5b3ae], ['Wood-look tile', 0xa77d57],
+  ['Kota stone', 0x8f9a8c], ['Anti-skid grey', 0x9c9a95], ['Terracotta tile', 0xb86e4f]];
+const paint = {};                                  // key -> { name, wall: index, floor: index, wallMat, floorMat }
+function roomKey(i, idx, name) { return name === 'STAIR' ? 'ST' : `${'GF'[i]}${idx}`; }
+function defaultPaint(i, name) {
+  const wall = { 'HALL / LIVING': 1, 'BED ROOM': i ? 4 : 3, KITCHEN: 7, PASSAGE: 1 }[name] ?? 0;
+  const floor = /TOILET|WASH/.test(name) ? 5 : name === 'KITCHEN' ? 2 : 0;
+  return { wall, floor };
+}
+(params.get('rc') || '').split('-').forEach(t => {          // only rooms changed from the default, e.g. rc=G3_5.0-ST_1.0 (room_wall.floor)
+  const m = /^(\w+?)_(\d+)\.(\d+)$/.exec(t);
+  if (m) paint[m[1]] = { wall: Math.min(+m[2], WALL_COLS.length - 1), floor: Math.min(+m[3], FLOOR_COLS.length - 1) };
+});
+function savePaint() {
+  const enc = Object.entries(paint).filter(([, p]) => p.wallMat && (p.wall !== p.def.wall || p.floor !== p.def.floor)).map(([k, p]) => `${k}_${p.wall}.${p.floor}`).join('-');
+  try { const u = new URL(location.href); if (enc) u.searchParams.set('rc', enc); else u.searchParams.delete('rc'); history.replaceState(null, '', u); } catch {}
+}
+// which room the walker stands in (null on terraces, in the yard)
+function curPaintKey() {
+  if (walk.level === 'S') return 'ST';
+  const { level, x, y } = walk, i = level === 'G' ? 0 : 1;
+  if (level === 'G' && y < 0) return null;
+  if (level === 'F' && !(x < FFBLOCK.x2 && y > FFBLOCK.y1)) return null;
+  const idx = WALK[level].rooms.findIndex(r => x >= r.rect[0] - 5 && x <= r.rect[2] + 5 && y >= r.rect[1] - 5 && y <= r.rect[3] + 5);
+  return idx < 0 ? null : roomKey(i, idx, WALK[level].rooms[idx].name);
+}
+// thin paint skins on the inside faces of the walls round a room, with the door and window openings left open
+function roomSkins(fl, base, [x1, y1, x2, y2], top, m, parent) {
+  for (const [hz, c, a, b, sg] of [[true, y1, x1, x2, 1], [true, y2, x1, x2, -1], [false, x1, y1, y2, 1], [false, x2, y1, y2, -1]]) {
+    for (const w of fl.walls) {
+      if ((w.a[1] === w.b[1]) !== hz) continue;
+      const wc = hz ? w.a[1] : w.a[0];
+      if (Math.abs(wc + sg * w.t / 2 - c) > 0.6) continue;              // this wall's face is on the room edge
+      const k = hz ? 0 : 1, lo = Math.max(a, Math.min(w.a[k], w.b[k])), hi = Math.min(b, Math.max(w.a[k], w.b[k]));
+      if (hi - lo < 1) continue;
+      const holes = fl.openings.filter(o => o.wall === w.id).map(o => { const s0 = o.type === 'door' ? 0 : o.sill; return [o.start, o.start + o.width, s0, s0 + o.height]; });
+      const cuts = [...new Set([lo, hi, ...holes.flatMap(h => [h[0], h[1]])])].filter(v => v >= lo && v <= hi).sort((p, q) => p - q);
+      const off = c + sg * 0.45;
+      for (let n = 0; n + 1 < cuts.length; n++) {
+        const mid = (cuts[n] + cuts[n + 1]) / 2, p = cuts[n] - (n === 0 ? 0.7 : 0), q = cuts[n + 1] + (n + 2 === cuts.length ? 0.7 : 0);   // ends tuck into the corners
+        let spans = [[0.3, top]];
+        holes.filter(h => h[0] <= mid && h[1] >= mid).forEach(([, , h1, h2]) => {
+          spans = spans.flatMap(([u, v]) => [[u, Math.min(v, h1)], [Math.max(u, h2), v]]).filter(([u, v]) => v - u > 0.2);
+        });
+        spans.forEach(([u, v]) => hz ? box(p, q, off - 0.2, off + 0.2, base + u, base + v, m, parent) : box(off - 0.2, off + 0.2, p, q, base + u, base + v, m, parent));
+      }
+    }
+  }
+}
 
 function buildWalkScene() {
   // simple fixtures so rooms can be recognised (kitchen platform, sink, stove, WC, basin)
@@ -1317,6 +1375,63 @@ function buildWalkScene() {
   [STAIR_WELL[0] + 1, STAIR_WELL[2] - 1].forEach(x => bar([x, 200, 9 * RISE], [x, 200, 9 * RISE + 36], 0.6, rail, RG));
   bar([STAIR_WELL[0], 118, FTF + 36], [281.25, 118, FTF + 36], 1, rail, RG);
   for (let x = STAIR_WELL[0] + 4; x < 281; x += 6) bar([x, 118, FTF], [x, 118, FTF + 36], 0.6, rail, RG);
+
+  // ---- room colours: floor finish + wall paint per room (walk mode only)
+  model.floors.slice(0, 2).forEach((fl, i) => fl.rooms.forEach(({ name, rect }, idx) => {
+    const key = roomKey(i, idx, name);
+    const p = paint[key] ??= { ...defaultPaint(i, name) };
+    p.name = name === 'STAIR' ? 'Staircase' : name; p.def = defaultPaint(i, name);
+    p.wallMat ??= std(WALL_COLS[p.wall][1], { roughness: 0.92 });
+    p.floorMat ??= std(FLOOR_COLS[p.floor][1], { roughness: 0.45 });
+    roomSkins(fl, i * FTF, rect, key === 'ST' && i === 0 ? FTF - 0.3 : H - 0.05, p.wallMat, RG);
+    if (name !== 'STAIR') box(rect[0], rect[2], rect[1], rect[3], i * FTF + 0.02, i * FTF + 0.3, p.floorMat, RG);
+  }));
+
+  // ---- furniture, simple shapes at real sizes (inches); each also blocks walking
+  const M = (c, o = {}) => std(c, { roughness: 0.8, ...o });
+  const fab = M(0x5f7486), wood = M(0x7a5236, { roughness: 0.6 }), dark = M(0x1b1b1d, { roughness: 0.3 }), sheet = M(0x9fb6cc),
+        cloth = M(0xf3efe6), appliance = M(0xdfe2e4, { roughness: 0.35, metalness: 0.15 });
+  const at = lv => lv === 'F' ? FTF : 0;
+  const P = (lv, x1, x2, y1, y2, h1, h2, m) => box(x1, x2, y1, y2, at(lv) + h1, at(lv) + h2, m, RG);
+  const solid = (lv, r) => WALK[lv].blocks.push(r);
+  const legs = (lv, x1, x2, y1, y2, h, m, t = 1.5) => [[x1, y1], [x2 - t, y1], [x1, y2 - t], [x2 - t, y2 - t]].forEach(([x, y]) => P(lv, x, x + t, y, y + t, 0, h, m));
+  const table = (lv, x1, x2, y1, y2, h, m) => { P(lv, x1, x2, y1, y2, h - 1.5, h, m); legs(lv, x1 + 1, x2 - 1, y1 + 1, y2 - 1, h - 1.5, m); };
+  const chair = (lv, cx, cy, back) => {             // 16" chair, back on side 'N' / 'S' / 'E' / 'W'
+    table(lv, cx - 8, cx + 8, cy - 8, cy + 8, 18, wood);
+    const b = { N: [cx - 8, cx + 8, cy - 8, cy - 6.5], S: [cx - 8, cx + 8, cy + 6.5, cy + 8], W: [cx - 8, cx - 6.5, cy - 8, cy + 8], E: [cx + 6.5, cx + 8, cy - 8, cy + 8] }[back];
+    P(lv, b[0], b[1], b[2], b[3], 18, 34, wood);
+  };
+
+  // both bedrooms: queen bed (5'0" x 6'3" mattress) with its head on the stair-side wall, wardrobe, side table, study table
+  ['G', 'F'].forEach(lv => {
+    P(lv, 173, 177, 155, 221, 0, 42, wood);                       // headboard
+    P(lv, 97, 173, 157, 219, 3, 11, wood); legs(lv, 97, 173, 157, 219, 3, wood, 3);
+    P(lv, 98, 173, 158, 218, 11, 18.5, cloth);                    // mattress
+    P(lv, 98, 152, 157.6, 218.4, 18.5, 19, sheet);                // bed sheet on the lower part
+    P(lv, 160, 171, 161, 186, 18.5, 23, cloth); P(lv, 160, 171, 190, 215, 18.5, 23, cloth);   // pillows
+    solid(lv, [97, 155, 177, 221]);
+    table(lv, 159, 177, 222, 238.5, 22, wood); solid(lv, [159, 222, 177, 239]);                  // side table
+    P(lv, 20, 92, 119.5, 143.5, 0, 84, wood);                     // 3-door wardrobe, 6'0" wide, 2'0" deep, 7'0" high
+    [44, 68].forEach(x => P(lv, x - 0.3, x + 0.3, 143.5, 143.8, 2, 82, dark));
+    solid(lv, [20, 119, 92, 144]);
+    table(lv, 15, 57, 219, 239, 30, wood); chair(lv, 36, 210, 'N'); solid(lv, [15, 201, 57, 239]);   // study table + chair
+  });
+
+  // hall: 2-seater sofa facing the TV on the east wall, coffee table, 4-seater dining table
+  P('G', 262, 294, 16, 78, 5, 17, fab); legs('G', 263, 293, 17, 77, 5, dark, 2);
+  P('G', 262, 270, 16, 78, 17, 33, fab);                                      // back
+  P('G', 262, 294, 16, 22, 17, 25, fab); P('G', 262, 294, 72, 78, 17, 25, fab);   // arms
+  solid('G', [262, 16, 294, 78]);
+  table('G', 313, 331, 29, 65, 16, wood); solid('G', [313, 29, 331, 65]);
+  P('G', 363, 378, 17, 77, 0, 20, wood); P('G', 374.5, 376, 25, 69, 32, 57, dark); solid('G', [363, 17, 378, 77]);   // TV unit + 50" TV
+  table('G', 196, 244, 30, 60, 30, wood);                                     // dining table 4'0" x 2'6"
+  chair('G', 211, 21, 'N'); chair('G', 229, 21, 'N'); chair('G', 211, 69, 'S'); chair('G', 229, 69, 'S');
+  solid('G', [196, 12, 244, 78]);
+  // kitchen: fridge by the west wall
+  P('G', 290.5, 318, 160, 186, 0, 66, appliance); P('G', 318, 318.4, 163, 165, 30, 60, dark); solid('G', [290.25, 160, 318, 186]);
+  // wash area: washing machine
+  P('G', 30, 54, 89, 113, 0, 34, appliance); cyl(42, 89, 7, 7, 14, 14.2, dark, RG, 20).rotation.x = Math.PI / 2;
+  solid('G', [30, 89, 54, 113]);
 
   // one ceiling lamp per room, only lit in walk mode
   model.floors.slice(0, 2).forEach((fl, i) => fl.rooms.forEach(({ name, rect: [x1, y1, x2, y2] }) => {
@@ -1388,6 +1503,7 @@ function drawWalkMap(force) {
   const key = `${walk.level}|${walk.h.toFixed(0)}|${walk.x.toFixed(0)}|${walk.y.toFixed(0)}|${walk.yaw.toFixed(2)}`;
   if (!force && key === walkMapState.key) return;
   walkMapState.key = key;
+  syncPaintUI();
   document.getElementById('walkRoom').textContent = `${{ G: 'Ground floor', F: 'First floor', S: 'Stairs' }[walk.level]} · ${walkRoom()}`;
   const ml = mapLevel(), { cv, s, ox, oy } = walkMapXf(), g = cv.getContext('2d'), L = WALK[ml];
   const R = (c, [x1, y1, x2, y2]) => { g.fillStyle = c; g.fillRect(ox + x1 * s, oy + y1 * s, (x2 - x1) * s, (y2 - y1) * s); };
@@ -1405,6 +1521,18 @@ function drawWalkMap(force) {
   g.lineTo(px - Math.sin(a + 2.5) * 9, py - Math.cos(a + 2.5) * 9);
   g.lineTo(px - Math.sin(a - 2.5) * 9, py - Math.cos(a - 2.5) * 9);
   g.closePath(); g.fill();
+}
+
+let paintShown;
+function syncPaintUI(force) {
+  const k = curPaintKey();
+  if (k === paintShown && !force) return;
+  paintShown = k;
+  const p = k && paint[k], ws = document.getElementById('walkWall'), fs = document.getElementById('walkFlr');
+  document.getElementById('walkPaint').classList.toggle('off', !p);
+  ws.disabled = fs.disabled = !p;
+  if (p) { ws.value = p.wall; fs.value = p.floor; }
+  document.getElementById('walkPaintRoom').textContent = p ? `Colours of ${p.name.toLowerCase()}` : 'Colours (stand in a room)';
 }
 
 function bindWalk() {
@@ -1448,6 +1576,14 @@ function bindWalk() {
   joy.addEventListener('pointermove', e => { if (e.pointerId === jid) setJoy(e); });
   ['pointerup', 'pointercancel'].forEach(t => joy.addEventListener(t, e => { if (e.pointerId === jid) { jid = null; walk.joy = { x: 0, y: 0 }; knob.style.transform = ''; } }));
 
+  // colour pickers: change the room you are standing in
+  $('walkWall').innerHTML = WALL_COLS.map(([n], i) => `<option value="${i}">Walls: ${n}</option>`).join('');
+  $('walkFlr').innerHTML = FLOOR_COLS.map(([n], i) => `<option value="${i}">Floor: ${n}</option>`).join('');
+  [['walkWall', 'wall', 'wallMat', WALL_COLS], ['walkFlr', 'floor', 'floorMat', FLOOR_COLS]].forEach(([id, f, mk, list]) => $(id).addEventListener('change', e => {
+    const p = paint[curPaintKey()]; if (!p) return;
+    p[f] = +e.target.value; p[mk].color.setHex(list[p[f]][1]); savePaint(); e.target.blur();
+  }));
+
   // tap the map to jump there
   $('walkMap').addEventListener('click', e => {
     const { cv, s, ox, oy } = walkMapXf(), b = cv.getBoundingClientRect();
@@ -1476,7 +1612,7 @@ if (params.get('walk')) {                 // open straight into walk mode, e.g. 
   setWalk(true);
   if (params.get('wx')) walkGo(params.get('wl') || 'G', +params.get('wx'), +params.get('wy'), +(params.get('wyaw') || 0), +(params.get('wp') || 0));
 }
-window.houseDebug = { walk, walkFree, walkGo, setWalk, walkTick, WALK_PLACES, stairH, stairLevel };   // for testing from the console
+window.houseDebug = { paint, curPaintKey,  walk, walkFree, walkGo, setWalk, walkTick, WALK_PLACES, stairH, stairLevel };   // for testing from the console
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);

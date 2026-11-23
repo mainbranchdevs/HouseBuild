@@ -47,6 +47,20 @@
   #walkPaint b { font-size: 12px; color: var(--ink); }
   #walkPaint select { font: inherit; font-size: 13px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); max-width: 190px; }
   #walkPaint.off { opacity: .55; }
+  #walkBar #walkArr.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #walkEdit { right: 10px; bottom: 56px; display: none; flex-direction: column; gap: 6px; width: 218px; max-height: calc(100vh - 200px); overflow: auto;
+    background: #fffffff2; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 13px; color: var(--ink); }
+  body.arranging #walkEdit { display: flex; }
+  body.arranging #walkPaint { display: none; }
+  #walkEdit [hidden] { display: none !important; }
+  #walkEdit b { font-size: 13px; }
+  #edHelp, #edSum { font-size: 12px; color: #555; line-height: 1.35; }
+  #walkEdit select, #walkEdit button { font: inherit; font-size: 13px; padding: 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); cursor: pointer; min-width: 0; }
+  #walkEdit button:disabled { opacity: .4; cursor: default; }
+  #walkEdit label { font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  #edSel, #edWall { display: flex; flex-direction: column; gap: 6px; }
+  .edRow { display: flex; gap: 5px; }
+  .edRow > * { flex: 1; }
   #walkRoom { bottom: 14px; left: 50%; transform: translateX(-50%); background: #1d1d1be0; color: #fff; padding: 6px 14px; border-radius: 999px; font-weight: 600;
     white-space: nowrap; max-width: calc(100vw - 20px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
   #walkMap { top: 10px; right: 10px; width: 176px; height: 148px; background: #fffffff0; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
@@ -182,10 +196,25 @@
 <button id="panelToggle">☰ Panel</button>
 <div id="app"></div>
 <div id="walkHud" hidden>
-  <div id="walkBar"><button id="walkExit">✕ Exit walk</button><select id="walkGo"></select><button id="walkFloor">▲ Go upstairs</button></div>
+  <div id="walkBar"><button id="walkExit">✕ Exit walk</button><select id="walkGo"></select><button id="walkFloor">▲ Go upstairs</button><button id="walkArr">✎ Arrange</button></div>
   <canvas id="walkMap" width="352" height="296" title="Tap the map to jump there"></canvas>
   <div id="joy"><div id="joyKnob"></div></div>
   <div id="walkPaint"><b id="walkPaintRoom">Colours</b><select id="walkWall" title="Wall colour of the room you are in"></select><select id="walkFlr" title="Floor of the room you are in"></select></div>
+  <div id="walkEdit">
+    <b id="edTitle">Arrange</b>
+    <div id="edHelp"></div>
+    <select id="edAdd" title="Add furniture, a fitting or a garden item where you are looking"></select>
+    <div id="edSel" hidden>
+      <select id="edCol"></select>
+      <div class="edRow"><button id="edMove">✥ Move</button><button id="edRot">⟳ Turn</button><button id="edDel" title="Remove (Delete key)">🗑 Remove</button></div>
+      <div class="edRow"><button data-n="l" title="Left">◀</button><button data-n="u" title="Forward / up">▲</button><button data-n="d" title="Back / down">▼</button><button data-n="r" title="Right">▶</button></div>
+    </div>
+    <div id="edWall" hidden><select id="edWallCol"></select></div>
+    <label><input type="checkbox" id="edWires"> Show wiring runs</label>
+    <label><input type="checkbox" id="edFans" checked> Fans running</label>
+    <div id="edSum"></div>
+    <div class="edRow"><button id="edShare" title="Everything is saved in the link and in this browser">Share link</button><button id="edReset">Reset all</button></div>
+  </div>
   <div id="walkRoom"></div>
   <div id="walkHint">Drag to look around.<br>Use the round pad (bottom left) or the arrow keys to walk.<br>Walk onto the staircase to climb it.</div>
 </div>
@@ -1261,7 +1290,7 @@ function walkFree(level, x, y) {
     if (y < -d + 4.5 + r) return false;
   }
   const L = WALK[level];
-  for (const list of [L.walls, L.blocks]) for (const [x1, y1, x2, y2] of list) {
+  for (const list of [L.walls, L.blocks, itemBlocks[level] || []]) for (const [x1, y1, x2, y2] of list) {
     const dx = x - Math.max(x1, Math.min(x, x2)), dy = y - Math.max(y1, Math.min(y, y2));
     if (dx * dx + dy * dy < r * r) return false;
   }
@@ -1310,14 +1339,23 @@ function defaultPaint(i, name) {
   const floor = /TOILET|WASH/.test(name) ? 5 : name === 'KITCHEN' ? 2 : 0;
   return { wall, floor };
 }
-(params.get('rc') || '').split('-').forEach(t => {          // only rooms changed from the default, e.g. rc=G3_5.0-ST_1.0 (room_wall.floor)
-  const m = /^(\w+?)_(\d+)\.(\d+)$/.exec(t);
-  if (m) paint[m[1]] = { wall: Math.min(+m[2], WALL_COLS.length - 1), floor: Math.min(+m[3], FLOOR_COLS.length - 1) };
+const savedWalk = (() => { try { return JSON.parse(localStorage.getItem('anijoHouseWalk') || 'null') || {}; } catch { return {}; } })();
+const walkFromUrl = params.has('rc') || params.has('lay');
+const RC0 = walkFromUrl ? params.get('rc') || '' : savedWalk.rc || '';
+const LAY0 = walkFromUrl ? params.get('lay') || '' : savedWalk.lay || '';
+// only rooms changed from the default, e.g. rc=G3_5.0-ST_1.0.e2c9 (room_wall.floor, then .e<wall side>c<colour> for an accent wall)
+RC0.split('-').forEach(t => {
+  const m = /^(\w+?)_(\d+)\.(\d+)((?:\.e\d+c\d+)*)$/.exec(t);
+  if (!m) return;
+  const walls = {};
+  for (const [, e, c] of m[4].matchAll(/e(\d+)c(\d+)/g)) if (+e < 4) walls[e] = Math.min(+c, WALL_COLS.length - 1);
+  paint[m[1]] = { wall: Math.min(+m[2], WALL_COLS.length - 1), floor: Math.min(+m[3], FLOOR_COLS.length - 1), walls };
 });
-function savePaint() {
-  const enc = Object.entries(paint).filter(([, p]) => p.wallMat && (p.wall !== p.def.wall || p.floor !== p.def.floor)).map(([k, p]) => `${k}_${p.wall}.${p.floor}`).join('-');
-  try { const u = new URL(location.href); if (enc) u.searchParams.set('rc', enc); else u.searchParams.delete('rc'); history.replaceState(null, '', u); } catch {}
+function encPaint() {
+  return Object.entries(paint).filter(([, p]) => p.wallMat && (p.wall !== p.def.wall || p.floor !== p.def.floor || Object.keys(p.walls).length))
+    .map(([k, p]) => `${k}_${p.wall}.${p.floor}` + Object.entries(p.walls).map(([e, c]) => `.e${e}c${c}`).join('')).join('-');
 }
+function savePaint() { persist(); }
 // which room the walker stands in (null on terraces, in the yard)
 function curPaintKey() {
   if (walk.level === 'S') return 'ST';
@@ -1328,8 +1366,11 @@ function curPaintKey() {
   return idx < 0 ? null : roomKey(i, idx, WALK[level].rooms[idx].name);
 }
 // thin paint skins on the inside faces of the walls round a room, with the door and window openings left open
-function roomSkins(fl, base, [x1, y1, x2, y2], top, m, parent) {
-  for (const [hz, c, a, b, sg] of [[true, y1, x1, x2, 1], [true, y2, x1, x2, -1], [false, x1, y1, y2, 1], [false, x2, y1, y2, -1]]) {
+const skinMeshes = {};                             // 'roomKey.side' -> meshes (side 0 N, 1 S, 2 W, 3 E)
+function roomSkins(fl, base, [x1, y1, x2, y2], top, matFor, parent, tag) {
+  const EDGES = [[true, y1, x1, x2, 1], [true, y2, x1, x2, -1], [false, x1, y1, y2, 1], [false, x2, y1, y2, -1]];
+  for (let e = 0; e < 4; e++) {
+    const [hz, c, a, b, sg] = EDGES[e], m = matFor(e);
     for (const w of fl.walls) {
       if ((w.a[1] === w.b[1]) !== hz) continue;
       const wc = hz ? w.a[1] : w.a[0];
@@ -1345,10 +1386,412 @@ function roomSkins(fl, base, [x1, y1, x2, y2], top, m, parent) {
         holes.filter(h => h[0] <= mid && h[1] >= mid).forEach(([, , h1, h2]) => {
           spans = spans.flatMap(([u, v]) => [[u, Math.min(v, h1)], [Math.max(u, h2), v]]).filter(([u, v]) => v - u > 0.2);
         });
-        spans.forEach(([u, v]) => hz ? box(p, q, off - 0.2, off + 0.2, base + u, base + v, m, parent) : box(off - 0.2, off + 0.2, p, q, base + u, base + v, m, parent));
+        spans.forEach(([u, v]) => {
+          const mesh = hz ? box(p, q, off - 0.2, off + 0.2, base + u, base + v, m, parent) : box(off - 0.2, off + 0.2, p, q, base + u, base + v, m, parent);
+          if (mesh) { mesh.userData.skin = { key: tag, edge: e }; (skinMeshes[`${tag}.${e}`] ??= []).push(mesh); }
+        });
       }
     }
   }
+}
+
+// ================================================================== Arrange mode: movable furniture, electrical points and garden items
+// Every item is { t: type code, lv: 'G' | 'F', x, y (plan inches), r: 0-3 (front faces S, E, N, W), h: mount height (wall items), c: colour index }.
+// Floor items stand on the floor and block walking, wall items hang on a wall face, ceiling items hang from the ceiling.
+const itemsGroup = new THREE.Group(); itemsGroup.visible = false; root.add(itemsGroup);
+const wiresGroup = new THREE.Group(); wiresGroup.visible = false; root.add(wiresGroup);
+const itemBlocks = { G: [], F: [], S: [] };
+const FRONT = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+const WOOD = [['Teak', 0x7a5236], ['Walnut', 0x5a3b26], ['Light oak', 0xb48a5c], ['White laminate', 0xe9e6df], ['Grey laminate', 0x8d8b88]];
+const FABRIC = [['Blue grey', 0x5f7486], ['Beige', 0xcbb994], ['Maroon', 0x7a2e35], ['Bottle green', 0x2f5a46], ['Charcoal', 0x3a3a3c], ['Mustard', 0xc49a3a]];
+const FANCOL = [['White', 0xf2f1ec], ['Ivory', 0xe9dfc6], ['Brown', 0x6b4a33], ['Black', 0x252527], ['Silver', 0xb9bdc0]];
+const PLATE = [['White', 0xf4f3ef], ['Black', 0x262628], ['Grey', 0x9a9a98], ['Gold', 0xc8a560]];
+const APPL = [['Silver', 0xdfe2e4], ['White', 0xf3f3f1], ['Black', 0x2a2a2c], ['Red', 0xa8322f]];
+const STONE = [['Grey stone', 0x9c9488], ['Brick red', 0x9c4a32], ['White', 0xe8e4dc]];
+const POT = [['Terracotta', 0xb86e4f], ['White', 0xeeeeea], ['Black', 0x2b2b2b]];
+const IDK = std(0x1b1b1d, { roughness: 0.3 }), ICLOTH = std(0xf3efe6), ISHEET = std(0x9fb6cc), ILEAF = std(0x4f7a3a),
+      IWATER = std(0x3f7f95, { roughness: 0.12, metalness: 0.1 }), WIRE = std(0xd2452b, { roughness: 0.6 });
+const legs4 = (g, x1, x2, y1, y2, h, m, t = 1.5) => [[x1, y1], [x2 - t, y1], [x1, y2 - t], [x2 - t, y2 - t]].forEach(([x, y]) => box(x, x + t, y, y + t, 0, h, m, g));
+const tableAt = (g, x1, x2, y1, y2, h, m) => { box(x1, x2, y1, y2, h - 1.5, h, m, g); legs4(g, x1 + 1, x2 - 1, y1 + 1, y2 - 1, h - 1.5, m); };
+const chairAt = (g, cx, cy, back, m) => { tableAt(g, cx - 8, cx + 8, cy - 8, cy + 8, 18, m); box(cx - 8, cx + 8, back < 0 ? cy - 8 : cy + 6.5, back < 0 ? cy - 6.5 : cy + 8, 18, 34, m, g); };
+const bedAt = (g, w, m) => {               // head (back) at -y, foot at +y, 6'3" mattress
+  const a = w / 2;
+  box(-a, a, -40, -36, 0, 42, m, g); box(-a + 2, a - 2, -36, 40, 3, 11, m, g); legs4(g, -a + 2, a - 2, -36, 40, 3, m, 3);
+  box(-a + 3, a - 3, -36, 39, 11, 18.5, ICLOTH, g); box(-a + 2.6, a - 2.6, -14, 39.4, 18.5, 19, ISHEET, g);
+  if (w > 50) { box(-a + 6, -2, -35, -24, 18.5, 23, ICLOTH, g); box(2, a - 6, -35, -24, 18.5, 23, ICLOTH, g); } else box(-a + 6, a - 6, -35, -24, 18.5, 23, ICLOTH, g);
+};
+const sofaAt = (g, w, d, m) => {
+  const a = w / 2, b = d / 2;
+  box(-a, a, -b, b, 5, 17, m, g); legs4(g, -a + 1, a - 1, -b + 1, b - 1, 5, IDK, 2);
+  box(-a, a, -b, -b + 8, 17, 33, m, g); box(-a, -a + 6, -b, b, 17, 25, m, g); box(a - 6, a, -b, b, 17, 25, m, g);
+};
+const CAT = {
+  // ---- furniture (w = width across the front, d = depth front-to-back, inches)
+  bd: { name: 'Bed, queen 5\'×6\'3"', grp: 'Furniture', kind: 'floor', w: 66, d: 80, cols: WOOD, build: (g, m) => bedAt(g, 66, m) },
+  bs: { name: 'Bed, single 3\'×6\'3"', grp: 'Furniture', kind: 'floor', w: 42, d: 80, cols: WOOD, build: (g, m) => bedAt(g, 42, m) },
+  wd: { name: 'Wardrobe, 3-door 6\'0"', grp: 'Furniture', kind: 'floor', w: 72, d: 24, cols: WOOD, build(g, m) { box(-36, 36, -12, 12, 0, 84, m, g); [-12, 12].forEach(x => box(x - 0.3, x + 0.3, 12, 12.3, 2, 82, IDK, g)); } },
+  st: { name: 'Side table', grp: 'Furniture', kind: 'floor', w: 18, d: 17, cols: WOOD, build: (g, m) => tableAt(g, -9, 9, -8.5, 8.5, 22, m) },
+  sd: { name: 'Study / dressing table', grp: 'Furniture', kind: 'floor', w: 42, d: 20, cols: WOOD, build: (g, m) => tableAt(g, -21, 21, -10, 10, 30, m) },
+  ch: { name: 'Chair', grp: 'Furniture', kind: 'floor', w: 16, d: 16, cols: WOOD, build: (g, m) => chairAt(g, 0, 0, -1, m) },
+  sf: { name: 'Sofa, 2-seater', grp: 'Furniture', kind: 'floor', w: 62, d: 32, cols: FABRIC, build: (g, m) => sofaAt(g, 62, 32, m) },
+  s3: { name: 'Sofa, 3-seater', grp: 'Furniture', kind: 'floor', w: 84, d: 34, cols: FABRIC, build: (g, m) => sofaAt(g, 84, 34, m) },
+  ct: { name: 'Coffee table', grp: 'Furniture', kind: 'floor', w: 36, d: 18, cols: WOOD, build: (g, m) => tableAt(g, -18, 18, -9, 9, 16, m) },
+  tv: { name: 'TV unit + 50" TV', grp: 'Furniture', kind: 'floor', w: 60, d: 15, cols: WOOD, build(g, m) { box(-30, 30, -7.5, 7.5, 0, 20, m, g); box(-22, 22, -5.5, -4, 32, 57, IDK, g); } },
+  dn: { name: 'Dining set, 4 chairs', grp: 'Furniture', kind: 'floor', w: 48, d: 66, cols: WOOD, build(g, m) {
+    tableAt(g, -24, 24, -15, 15, 30, m); chairAt(g, -9, -24, -1, m); chairAt(g, 9, -24, -1, m); chairAt(g, -9, 24, 1, m); chairAt(g, 9, 24, 1, m); } },
+  pj: { name: 'Pooja unit', grp: 'Furniture', kind: 'floor', w: 24, d: 18, cols: WOOD, build(g, m) { box(-12, 12, -9, 9, 0, 30, m, g); box(-12, 12, -9, -7, 30, 60, m, g); box(-12, -10, -9, 9, 30, 60, m, g); box(10, 12, -9, 9, 30, 60, m, g); box(-13, 13, -10, 9, 60, 62.5, m, g); } },
+  bk: { name: 'Bookshelf', grp: 'Furniture', kind: 'floor', w: 36, d: 12, cols: WOOD, build(g, m) { box(-18, 18, -6, -5, 0, 72, m, g); box(-18, -17, -6, 6, 0, 72, m, g); box(17, 18, -6, 6, 0, 72, m, g); [0, 18, 36, 54, 71].forEach(h => box(-18, 18, -6, 6, h, h + 1, m, g)); } },
+  sr: { name: 'Shoe rack', grp: 'Furniture', kind: 'floor', w: 36, d: 12, cols: WOOD, build(g, m) { box(-18, 18, -6, 6, 0, 36, m, g); box(-17, 17, 6, 6.3, 2, 34, IDK, g); } },
+  fr: { name: 'Fridge', grp: 'Furniture', kind: 'floor', w: 26, d: 28, cols: APPL, build(g, m) { box(-13, 13, -14, 14, 0, 66, m, g); box(9, 11, 14, 14.4, 30, 60, IDK, g); } },
+  wm: { name: 'Washing machine', grp: 'Furniture', kind: 'floor', w: 24, d: 24, cols: APPL, build(g, m) { box(-12, 12, -12, 12, 0, 34, m, g); cyl(0, 12, 7, 7, 19.9, 20.1, IDK, g, 20).rotation.x = Math.PI / 2; } },
+  // ---- electrical (wall items: h = height of the centre above the floor)
+  fn: { name: 'Ceiling fan, 48"', grp: 'Electrical', kind: 'ceil', w: 48, d: 48, cols: FANCOL, build(g, m) {
+    cyl(0, 0, 3, 3, -3, 0, m, g, 16); cyl(0, 0, 0.6, 0.6, -13, -3, m, g, 8); cyl(0, 0, 4.5, 4.5, -17, -13, m, g, 20);
+    const spin = new THREE.Group(); spin.position.y = -15; g.add(spin); g.userData.spin = spin;
+    for (let k = 0; k < 3; k++) { const bl = new THREE.Group(); bl.rotation.y = k * 2 * Math.PI / 3; spin.add(bl); box(4, 24, -2.4, 2.4, -0.25, 0.25, m, bl); } } },
+  lt: { name: 'Ceiling light (LED)', grp: 'Electrical', kind: 'ceil', w: 12, d: 12, cols: PLATE, build(g, m) { cyl(0, 0, 6, 6, -1.2, 0, m, g, 24); cyl(0, 0, 5.2, 5.2, -1.4, -1.2, mat.led, g, 24); } },
+  tb: { name: 'Tube light, 4\'', grp: 'Electrical', kind: 'wall', h: 84, w: 48, d: 2, cols: PLATE, build(g, m) { box(-24, 24, 0, 1.6, -1.2, 1.2, m, g); box(-23, 23, 1.6, 2.4, -0.8, 0.8, mat.led, g); } },
+  sw: { name: 'Switch board', grp: 'Electrical', kind: 'wall', h: 48, w: 10, d: 1, cols: PLATE, build(g, m) {
+    box(-5, 5, 0, 0.6, -4, 4, m, g); for (let k = 0; k < 4; k++) box(-4 + k * 2.2, -2.6 + k * 2.2, 0.6, 1, -0.6, 2, IDK, g); box(-2, 2, 0.6, 0.8, -3.4, -1.4, IDK, g); } },
+  so: { name: 'Plug point (socket)', grp: 'Electrical', kind: 'wall', h: 12, w: 4, d: 1, cols: PLATE, build(g, m) {
+    box(-2, 2, 0, 0.5, -2, 2, m, g); [[-0.7, 0.6], [0.7, 0.6], [0, -0.7]].forEach(([x, z]) => box(x - 0.25, x + 0.25, 0.5, 0.6, z - 0.25, z + 0.25, IDK, g)); } },
+  ac: { name: 'Split AC (indoor unit)', grp: 'Electrical', kind: 'wall', h: 90, w: 34, d: 9, cols: [['White', 0xf4f4f2]], build(g, m) { box(-17, 17, 0, 9, -6, 6, m, g); box(-15, 15, 8.6, 9.1, -5, -3.6, IDK, g); } },
+  ex: { name: 'Exhaust fan', grp: 'Electrical', kind: 'wall', h: 84, w: 10, d: 3, cols: PLATE, build(g, m) { box(-5, 5, 0, 2.5, -5, 5, m, g); cyl(0, 2.5, 3.8, 3.8, 0, 0.2, IDK, g, 18).rotation.x = Math.PI / 2; } },
+  db: { name: 'Main switch / MCB box', grp: 'Electrical', kind: 'wall', h: 66, w: 12, d: 4, cols: PLATE, build(g, m) { box(-6, 6, 0, 4, -8, 8, m, g); box(-4.5, 4.5, 4, 4.2, -2, 2, IDK, g); } },
+  // ---- garden / outside
+  pd: { name: 'Small pond / water feature', grp: 'Garden', kind: 'floor', w: 60, d: 60, cols: STONE, build(g, m) { cyl(0, 0, 30, 31, 0, 14, m, g, 36); cyl(0, 0, 27, 27, 14, 14.3, IWATER, g, 36); } },
+  tu: { name: 'Tulsi stand', grp: 'Garden', kind: 'floor', w: 18, d: 18, cols: STONE, build(g, m) { box(-9, 9, -9, 9, 0, 6, m, g); box(-7, 7, -7, 7, 6, 30, m, g); box(-8.5, 8.5, -8.5, 8.5, 30, 32, m, g); cyl(0, 0, 5, 8, 32, 44, ILEAF, g, 12); } },
+  pt: { name: 'Plant pot', grp: 'Garden', kind: 'floor', w: 18, d: 18, cols: POT, build(g, m) { cyl(0, 0, 8, 6, 0, 16, m, g, 16); cyl(0, 0, 4, 9, 16, 34, ILEAF, g, 12); } },
+  bn: { name: 'Garden bench', grp: 'Garden', kind: 'floor', w: 48, d: 18, cols: WOOD, build(g, m) { tableAt(g, -24, 24, -9, 9, 17, m); box(-24, 24, -9, -7.5, 17, 32, m, g); } },
+};
+
+let items = [], layoutDirty = false;
+const floorAt = (lv, x, y) => lv === 'F' ? FTF : y < 0 ? -PLINTH : 0;
+const ceilAt = lv => lv === 'F' ? FTF + H : H;
+function hasCeiling(lv, x, y) {
+  if (lv === 'F') return x > 5 && x < FFBLOCK.x2 - 5 && y > FFBLOCK.y1 + 3 && y < D - 5;
+  return x > 5 && x < W - 5 && y > 5 && y < D - 5 && !(x > STAIR_HOLE[0] && x < STAIR_HOLE[2] && y > STAIR_HOLE[1] && y < STAIR_HOLE[3]);
+}
+function footprint(it) {
+  const C = CAT[it.t], fw = it.r % 2 ? C.d : C.w, fd = it.r % 2 ? C.w : C.d;
+  return [it.x - fw / 2, it.y - fd / 2, it.x + fw / 2, it.y + fd / 2];
+}
+function placeItem(it) {
+  if (it.g) { itemsGroup.remove(it.g); it.g.traverse(o => o.geometry?.dispose()); it.g.userData.mat?.dispose(); }
+  const C = CAT[it.t], g = new THREE.Group(), m = std(C.cols[it.c % C.cols.length][1], { roughness: C.grp === 'Electrical' ? 0.45 : 0.75 });
+  C.build(g, m);
+  g.position.set(it.x, C.kind === 'ceil' ? ceilAt(it.lv) : floorAt(it.lv, it.x, it.y) + (C.kind === 'wall' ? it.h : 0), it.y);
+  g.rotation.y = it.r * Math.PI / 2;
+  g.userData.mat = m;
+  g.traverse(o => { if (o.isMesh) { o.userData.item = it; if (C.kind !== 'floor') o.castShadow = false; } });
+  itemsGroup.add(g); it.g = g;
+}
+function refreshBlocks() {
+  itemBlocks.G = []; itemBlocks.F = [];
+  items.forEach(it => { if (CAT[it.t].kind === 'floor') itemBlocks[it.lv].push(footprint(it)); });
+}
+// slide a floor item out of any wall it overlaps (so it can be pushed right up against a wall)
+function pushOut(it) {
+  for (let k = 0; k < 8; k++) {
+    const f = footprint(it);
+    const w = WALK[it.lv].walls.find(w => Math.min(f[2] - w[0], w[2] - f[0]) > 0 && Math.min(f[3] - w[1], w[3] - f[1]) > 0);
+    if (!w) return;
+    const px = Math.min(f[2] - w[0], w[2] - f[0]), py = Math.min(f[3] - w[1], w[3] - f[1]);
+    if (px < py) it.x += (it.x < (w[0] + w[2]) / 2 ? -1 : 1) * (px + 0.2);
+    else it.y += (it.y < (w[1] + w[3]) / 2 ? -1 : 1) * (py + 0.2);
+  }
+}
+
+// starting layout (my suggestion — everything can be moved)
+function defaultItems() {
+  const L = [];
+  const F = (t, lv, x, y, r = 0) => L.push({ t, lv, x, y, r, h: 0, c: 0 });
+  const Wl = (t, lv, x, y, r, h) => L.push({ t, lv, x: x + FRONT[r][0] * 0.75, y: y + FRONT[r][1] * 0.75, r, h: h ?? CAT[t].h, c: 0 });
+  const Cl = (t, lv, x, y) => L.push({ t, lv, x, y, r: 0, h: 0, c: 0 });
+  ['G', 'F'].forEach(lv => {                                        // both bedrooms
+    F('bd', lv, 137, 188, 3); F('st', lv, 168, 230.5); F('wd', lv, 56, 131.5); F('sd', lv, 36, 229, 2); F('ch', lv, 36, 210);
+    Cl('fn', lv, 93, 179); Cl('lt', lv, 50, 179);
+    Wl('sw', lv, 133, 119, 0, 48); Wl('so', lv, 168, 239, 2, 27); Wl('so', lv, 46, 239, 2, 34);
+  });
+  // hall
+  F('sf', 'G', 278, 47, 1); F('ct', 'G', 322, 47, 1); F('tv', 'G', 370.5, 47, 3); F('dn', 'G', 220, 45);
+  Cl('fn', 'G', 220, 50); Cl('fn', 'G', 322, 50); Cl('lt', 'G', 165, 62); Cl('lt', 'G', 272, 62);
+  Wl('sw', 'G', 202, 9, 0, 48); Wl('so', 'G', 378, 47, 3, 26); Wl('so', 'G', 252, 9, 0, 12); Wl('db', 'G', 378, 98, 3, 66);
+  // kitchen
+  F('fr', 'G', 304.25, 173, 1);
+  Wl('sw', 'G', 338, 119, 0, 48); Wl('tb', 'G', 290.25, 205, 1, 84); Cl('lt', 'G', 322, 175);
+  Wl('so', 'G', 378, 195, 3, 42); Wl('so', 'G', 342, 239, 2, 42); Wl('so', 'G', 290.25, 192, 1, 48); Wl('ex', 'G', 378, 225, 3, 84);
+  // wash + toilet
+  F('wm', 'G', 42, 101, 2);
+  Wl('sw', 'G', 80, 73.5, 0, 48); Cl('lt', 'G', 69, 39); Cl('lt', 'G', 75, 94); Wl('so', 'G', 62, 114.5, 2, 42);
+  // first floor: passage, toilet, stairwell
+  Wl('sw', 'F', 200, 60.5, 0, 48); Cl('lt', 'F', 160, 86); Cl('lt', 'F', 250, 86);
+  Cl('lt', 'F', 57, 87); Wl('sw', 'F', 109.5, 80, 1, 48); Cl('lt', 'F', 233, 200);
+  return L;
+}
+
+// layout <-> link text: type+level . x . y . turn . height . colour (x, y, height in tenths of an inch, base 36)
+const e36 = v => Math.round(v * 10).toString(36), d36 = s => parseInt(s, 36) / 10;
+function encLayout() { return items.length ? items.map(it => `${it.t}${it.lv}.${e36(it.x)}.${e36(it.y)}.${it.r}.${e36(it.h)}.${it.c}`).join('_') : '0'; }
+function decLayout(s) {
+  const out = [];
+  for (const tok of (s || '').split('_')) {
+    const f = tok.split('.'); if (f.length !== 6) continue;
+    const t = f[0].slice(0, 2), lv = f[0][2];
+    if (!CAT[t] || (lv !== 'G' && lv !== 'F')) continue;
+    const it = { t, lv, x: d36(f[1]), y: d36(f[2]), r: (+f[3] || 0) % 4, h: d36(f[4]), c: +f[5] || 0 };
+    if ([it.x, it.y, it.h].every(Number.isFinite)) out.push(it);
+  }
+  return out;
+}
+function initItems() {
+  const dec = decLayout(LAY0);
+  items = dec.length || LAY0 === '0' ? dec : defaultItems();
+  layoutDirty = dec.length > 0 || LAY0 === '0';
+  items.forEach(placeItem); refreshBlocks();
+}
+
+// ---- wiring: from each room's switch board straight up to the ceiling, then along the ceiling to every fan / light / point
+function wireRoutes() {
+  const groups = new Map(), segs = [], missing = [];
+  items.forEach(it => {
+    const C = CAT[it.t]; if (C.grp !== 'Electrical' || it.t === 'db') return;
+    const n = FRONT[it.r], px = C.kind === 'wall' ? it.x + n[0] * 5 : it.x, py = C.kind === 'wall' ? it.y + n[1] * 5 : it.y;
+    const ri = WALK[it.lv].rooms.findIndex(r => px >= r.rect[0] - 1 && px <= r.rect[2] + 1 && py >= r.rect[1] - 1 && py <= r.rect[3] + 1);
+    const key = `${it.lv}${ri}`;
+    if (!groups.has(key)) groups.set(key, { lv: it.lv, ri, boards: [], loads: [] });
+    (it.t === 'sw' ? groups.get(key).boards : groups.get(key).loads).push(it);
+  });
+  const allBoards = items.filter(it => it.t === 'sw');
+  for (const gr of groups.values()) {
+    if (!gr.loads.length) continue;
+    let b = gr.boards[0];
+    if (!b) {                                    // e.g. a toilet switched from outside: feed it from the nearest board on that floor
+      const L0 = gr.loads[0], near = allBoards.filter(x => x.lv === gr.lv).sort((p, q) => Math.hypot(p.x - L0.x, p.y - L0.y) - Math.hypot(q.x - L0.x, q.y - L0.y))[0];
+      if (!near) { missing.push(`${gr.lv === 'G' ? 'ground' : 'first'} floor`); continue; }
+      b = near;
+    }
+    const cy = ceilAt(gr.lv) - 1.5, top = [b.x, b.y, cy];
+    segs.push([[b.x, b.y, floorAt(b.lv, b.x, b.y) + b.h + 4], top]);
+    gr.loads.forEach(L => {
+      const corner = [L.x, b.y, cy], end = [L.x, L.y, cy];
+      segs.push([top, corner], [corner, end]);
+      if (CAT[L.t].kind === 'wall') segs.push([end, [L.x, L.y, floorAt(L.lv, L.x, L.y) + L.h + 2]]);
+    });
+  }
+  return { segs: segs.filter(([a, b]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) > 0.5), missing };
+}
+function rebuildWires() {
+  wiresGroup.children.forEach(o => o.geometry?.dispose()); wiresGroup.clear();
+  wireRoutes().segs.forEach(([a, b]) => bar(a, b, 0.45, WIRE, wiresGroup));
+}
+function updateSummary() {
+  const n = t => items.filter(i => i.t === t).length, { segs, missing } = wireRoutes();
+  const len = segs.reduce((s, [a, b]) => s + Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), 0);
+  document.getElementById('edSum').innerHTML =
+    `Fans ${n('fn')} · Lights ${n('lt') + n('tb')} · Switch boards ${n('sw')} · Plug points ${n('so')}${n('ac') ? ` · AC ${n('ac')}` : ''}${n('ex') ? ` · Exhaust ${n('ex')}` : ''}`
+    + `<br>Wiring ≈ ${Math.round(len / 12)} ft of conduit (rough)`
+    + (missing.length ? `<br><span style="color:#b5452f">No switch board on the ${[...new Set(missing)].join(' or ')}</span>` : '');
+}
+
+// ---- saving: the link (?rc= colours, ?lay= layout) and this browser
+function persist() {
+  const rc = encPaint(), lay = layoutDirty ? encLayout() : '';
+  try {
+    const u = new URL(location.href);
+    rc ? u.searchParams.set('rc', rc) : u.searchParams.delete('rc');
+    lay ? u.searchParams.set('lay', lay) : u.searchParams.delete('lay');
+    history.replaceState(null, '', u);
+  } catch {}
+  try { localStorage.setItem('anijoHouseWalk', JSON.stringify({ rc, lay })); } catch {}
+}
+async function shareLink() {
+  persist();
+  const url = location.href;
+  try { if (navigator.share) { await navigator.share({ title: 'Anijo House – my arrangement', url }); return; } }
+  catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); hint('Link copied. Paste it in WhatsApp to share this arrangement.'); }
+  catch { prompt('Copy this link:', url); }
+}
+function setWallOverride(key, edge, c) {
+  const p = paint[key], meshes = skinMeshes[`${key}.${edge}`] || [];
+  if (c === null) { delete p.walls[edge]; meshes.forEach(m => { m.material = p.wallMat; }); }
+  else {
+    p.walls[edge] = c;
+    const em = (p.edgeMats ??= {})[edge] ??= std(WALL_COLS[c][1], { roughness: 0.92 });
+    em.color.setHex(WALL_COLS[c][1]); meshes.forEach(m => { m.material = em; });
+  }
+  persist();
+}
+function resetAll() {
+  if (!confirm('Put all furniture, fittings and colours back to the starting layout?')) return;
+  items.forEach(it => itemsGroup.remove(it.g));
+  items = defaultItems(); items.forEach(placeItem); layoutDirty = false;
+  Object.entries(paint).forEach(([k, p]) => {
+    if (!p.wallMat) return;
+    p.wall = p.def.wall; p.floor = p.def.floor; p.walls = {};
+    p.wallMat.color.setHex(WALL_COLS[p.wall][1]); p.floorMat.color.setHex(FLOOR_COLS[p.floor][1]);
+    for (let e = 0; e < 4; e++) (skinMeshes[`${k}.${e}`] || []).forEach(m => { m.material = p.wallMat; });
+  });
+  arr.sel = null; arr.wall = null; changed(false); syncPaintUI(true);
+}
+
+// ---- arrange mode: tap to select, Move + tap to place, nudge, turn, recolour, remove
+const arr = { on: false, sel: null, wall: null, moving: false, wires: false, fans: true };
+const ray = new THREE.Raycaster();
+const selHelper = new THREE.Box3Helper(new THREE.Box3(), 0xff6a00);
+selHelper.material.depthTest = false; selHelper.renderOrder = 10; selHelper.visible = false; scene.add(selHelper);
+let hintT;
+function hint(t) {
+  const el = document.getElementById('walkHint'); el.innerHTML = t; el.style.opacity = 1;
+  clearTimeout(hintT); hintT = setTimeout(() => { el.style.opacity = 0; }, 3000);
+}
+const visibleChain = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+const solidHit = h => h.face && h.object.material !== mat.glass && h.object.material !== mat.grill && visibleChain(h.object);   // taps go through window glass
+function rayHitsAt(cx, cy) {
+  const b = renderer.domElement.getBoundingClientRect();
+  scene.updateMatrixWorld(); camera.updateMatrixWorld();
+  ray.setFromCamera(new THREE.Vector2((cx - b.left) / b.width * 2 - 1, -(cy - b.top) / b.height * 2 + 1), camera);
+  return ray.intersectObjects([itemsGroup, walk.lights, house, roofGroup], true).filter(solidHit);
+}
+function hitInfo(h) {
+  const p = root.worldToLocal(h.point.clone()), n = h.face.normal.clone().transformDirection(h.object.matrixWorld);
+  return { x: p.x, y: p.z, h: p.y, nx: n.x, ny: n.z, nv: n.y, skin: !!h.object.userData.skin };
+}
+const levelOf = hi => hi.nv < -0.5 ? (hi.h < FTF ? 'G' : 'F') : (hi.h >= FTF - 2 ? 'F' : 'G');
+function placeWallFromHit(it, hi) {
+  const r = Math.abs(hi.nx) > Math.abs(hi.ny) ? (hi.nx > 0 ? 1 : 3) : (hi.ny > 0 ? 0 : 2), off = hi.skin ? 0.1 : 0.75;
+  Object.assign(it, { lv: levelOf(hi), r, x: hi.x + FRONT[r][0] * off, y: hi.y + FRONT[r][1] * off });
+}
+function moveSelTo(hits) {
+  const it = arr.sel, C = CAT[it.t], h0 = hits.find(h => !h.object.userData.item);
+  if (!h0) return hint('Tap a spot inside the house');
+  const hi = hitInfo(h0);
+  if (C.kind === 'wall') {
+    if (Math.abs(hi.nv) > 0.5) return hint('Tap on a wall to put it there');
+    placeWallFromHit(it, hi);
+    it.h = Math.max(6, Math.min(H - 8, hi.h - floorAt(it.lv, it.x, it.y)));
+  } else {
+    let x = hi.x, y = hi.y;
+    if (Math.abs(hi.nv) < 0.5) { const k = Math.max(C.w, C.d) / 2 + 2; x += hi.nx * k; y += hi.ny * k; }   // tapped a wall: stand it in front
+    const lv = levelOf(hi);
+    if (C.kind === 'ceil' && !hasCeiling(lv, x, y)) return hint('There is no ceiling there');
+    Object.assign(it, { lv, x, y });
+    if (C.kind === 'floor') pushOut(it);
+  }
+  arr.moving = false; placeItem(it); changed();
+}
+function addItem(t) {
+  const C = CAT[t], s = Math.sin(walk.yaw), c = Math.cos(walk.yaw);
+  const it = { t, lv: mapLevel(), x: walk.x, y: walk.y, r: 0, h: C.h || 0, c: 0 };
+  if (C.kind === 'wall') {                       // on the wall straight ahead
+    scene.updateMatrixWorld();
+    ray.set(camera.position.clone(), new THREE.Vector3(-s, 0, -c)); ray.far = 30;
+    const h0 = ray.intersectObjects([walk.lights, house, roofGroup], true).find(h => solidHit(h) && !h.object.userData.item && Math.abs(hitInfo(h).nv) < 0.5);
+    ray.far = Infinity;
+    if (!h0) return hint('Face a wall first, then add it');
+    placeWallFromHit(it, hitInfo(h0));
+  } else {                                       // a little in front of you, facing you
+    const dist = C.kind === 'ceil' ? 36 : BODY + 10 + Math.max(C.w, C.d) / 2;
+    it.x = walk.x - s * dist; it.y = walk.y - c * dist;
+    it.r = [1, 2, 3].reduce((best, r) => FRONT[r][0] * s + FRONT[r][1] * c > FRONT[best][0] * s + FRONT[best][1] * c ? r : best, 0);
+    if (C.kind === 'ceil' && !hasCeiling(it.lv, it.x, it.y)) return hint('There is no ceiling here');
+    if (C.kind === 'floor') pushOut(it);
+  }
+  items.push(it); placeItem(it);
+  arr.sel = it; arr.wall = null; arr.moving = false; changed();
+  hint(`${C.name} added.<br>Use Move or the arrows to place it.`);
+}
+function nudge(d) {
+  const it = arr.sel; if (!it) return;
+  const C = CAT[it.t], st = 3, s = Math.sin(walk.yaw), c = Math.cos(walk.yaw), right = [c, -s], fwd = [-s, -c];
+  if (C.kind === 'wall') {
+    if (d === 'u' || d === 'd') it.h = Math.max(6, Math.min(H - 8, it.h + (d === 'u' ? st : -st)));
+    else {
+      const t = it.r % 2 ? [0, 1] : [1, 0], k = (d === 'r' ? 1 : -1) * (Math.sign(right[0] * t[0] + right[1] * t[1]) || 1) * st;
+      it.x += t[0] * k; it.y += t[1] * k;
+    }
+  } else {
+    const v = { l: [-right[0], -right[1]], r: right, u: fwd, d: [-fwd[0], -fwd[1]] }[d];
+    it.x += v[0] * st; it.y += v[1] * st;
+    if (C.kind === 'floor') pushOut(it);
+  }
+  placeItem(it); changed();
+}
+function changed(layout = true) {
+  refreshBlocks(); if (layout) layoutDirty = true;
+  if (arr.wires) rebuildWires();
+  updateSummary(); persist(); showSel(); drawWalkMap(true);
+}
+function showSel() {
+  const $ = id => document.getElementById(id), it = arr.sel, wl = arr.wall;
+  $('edSel').hidden = !it; $('edWall').hidden = !wl;
+  if (it) {
+    const C = CAT[it.t];
+    $('edTitle').textContent = C.name;
+    $('edCol').innerHTML = C.cols.map(([n], i) => `<option value="${i}">Colour: ${n}</option>`).join('');
+    $('edCol').value = it.c % C.cols.length; $('edCol').hidden = C.cols.length < 2;
+    $('edRot').disabled = C.kind === 'wall';
+    $('edMove').textContent = arr.moving ? '✕ Cancel' : '✥ Move';
+    $('edHelp').textContent = arr.moving
+      ? (C.kind === 'wall' ? 'Now tap the wall where it should go.' : C.kind === 'ceil' ? 'Now tap the spot (floor or ceiling) where it should hang.' : 'Now tap the spot on the floor where it should go.')
+      : C.kind === 'wall' ? `${fmt(it.h)} above the floor. ▲ ▼ raise / lower, ◀ ▶ slide along the wall.` : '◀ ▶ ▲ ▼ nudge it 3" (as you look). Move: tap a new spot.';
+    selHelper.box.setFromObject(it.g); selHelper.visible = true;
+  } else if (wl) {
+    const p = paint[wl.key];
+    $('edTitle').textContent = `${['North', 'South', 'West', 'East'][wl.edge]} wall · ${p.name.toLowerCase()}`;
+    $('edWallCol').value = p.walls[wl.edge] ?? '';
+    $('edHelp').textContent = 'Paint just this wall (an accent wall), or keep it the same as the rest of the room.';
+    const b = new THREE.Box3(); (skinMeshes[`${wl.key}.${wl.edge}`] || []).forEach(m => b.expandByObject(m));
+    selHelper.box.copy(b); selHelper.visible = !b.isEmpty();
+  } else {
+    $('edTitle').textContent = 'Arrange';
+    $('edHelp').textContent = 'Tap furniture, a fan, a switch board or a wall to change it. Or add something where you are looking.';
+    selHelper.visible = false;
+  }
+}
+function setArrange(on) {
+  arr.on = on; arr.moving = false;
+  if (!on) { arr.sel = null; arr.wall = null; }
+  document.body.classList.toggle('arranging', on);
+  document.getElementById('walkArr').classList.toggle('on', on);
+  showSel(); updateSummary(); drawWalkMap(true);
+  if (on) hint('Arrange: tap something to select it.<br>Drag still looks around.');
+}
+function arrTap(cx, cy) {
+  const hits = rayHitsAt(cx, cy);
+  if (arr.moving && arr.sel) return moveSelTo(hits);
+  const h0 = hits[0];
+  if (h0?.object.userData.item) { arr.sel = h0.object.userData.item; arr.wall = null; }
+  else if (h0?.object.userData.skin) { arr.sel = null; arr.wall = { ...h0.object.userData.skin }; }
+  else { arr.sel = null; arr.wall = null; }
+  arr.moving = false; showSel(); drawWalkMap(true);
+}
+function bindArrange(el) {
+  const $ = id => document.getElementById(id);
+  $('walkArr').addEventListener('click', () => setArrange(!arr.on));
+  $('edAdd').innerHTML = '<option value="">＋ Add where I am looking…</option>' + ['Furniture', 'Electrical', 'Garden'].map(gp => `<optgroup label="${gp}">`
+    + Object.entries(CAT).filter(([, C]) => C.grp === gp).map(([k, C]) => `<option value="${k}">${C.name}</option>`).join('') + '</optgroup>').join('');
+  $('edAdd').addEventListener('change', e => { const t = e.target.value; e.target.value = ''; e.target.blur(); if (t) addItem(t); });
+  $('edMove').addEventListener('click', () => { arr.moving = !arr.moving; showSel(); if (arr.moving) hint($('edHelp').textContent); });
+  $('edRot').addEventListener('click', () => { const it = arr.sel; if (!it) return; it.r = (it.r + 1) % 4; if (CAT[it.t].kind === 'floor') pushOut(it); placeItem(it); changed(); });
+  $('edDel').addEventListener('click', () => { const it = arr.sel; if (!it) return; itemsGroup.remove(it.g); items = items.filter(i => i !== it); arr.sel = null; changed(); });
+  document.querySelectorAll('#walkEdit [data-n]').forEach(b => b.addEventListener('click', () => nudge(b.dataset.n)));
+  $('edCol').addEventListener('change', e => { const it = arr.sel; if (!it) return; it.c = +e.target.value; placeItem(it); changed(); e.target.blur(); });
+  $('edWallCol').innerHTML = '<option value="">Wall: same as the room</option>' + WALL_COLS.map(([n], i) => `<option value="${i}">Wall: ${n}</option>`).join('');
+  $('edWallCol').addEventListener('change', e => { const w = arr.wall; if (!w) return; setWallOverride(w.key, w.edge, e.target.value === '' ? null : +e.target.value); e.target.blur(); });
+  $('edWires').addEventListener('change', e => { arr.wires = e.target.checked; wiresGroup.visible = walk.on && arr.wires; if (arr.wires) rebuildWires(); });
+  $('edFans').addEventListener('change', e => { arr.fans = e.target.checked; });
+  $('edShare').addEventListener('click', shareLink);
+  $('edReset').addEventListener('click', resetAll);
+  addEventListener('keydown', e => { if (walk.on && arr.on && arr.sel && e.code === 'Delete' && e.target.tagName !== 'SELECT') $('edDel').click(); });
+  // a short tap on the picture (not a drag) selects or places things while arranging
+  let tap = null;
+  el.addEventListener('pointerdown', e => { tap = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  el.addEventListener('pointerup', e => {
+    if (arr.on && tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 8 && performance.now() - tap.t < 500) arrTap(e.clientX, e.clientY);
+    tap = null;
+  });
 }
 
 function buildWalkScene() {
@@ -1383,63 +1826,21 @@ function buildWalkScene() {
     p.name = name === 'STAIR' ? 'Staircase' : name; p.def = defaultPaint(i, name);
     p.wallMat ??= std(WALL_COLS[p.wall][1], { roughness: 0.92 });
     p.floorMat ??= std(FLOOR_COLS[p.floor][1], { roughness: 0.45 });
-    roomSkins(fl, i * FTF, rect, key === 'ST' && i === 0 ? FTF - 0.3 : H - 0.05, p.wallMat, RG);
+    p.walls ??= {};
+    const matFor = e => p.walls[e] != null ? ((p.edgeMats ??= {})[e] ??= std(WALL_COLS[p.walls[e]][1], { roughness: 0.92 })) : p.wallMat;
+    roomSkins(fl, i * FTF, rect, key === 'ST' && i === 0 ? FTF - 0.3 : H - 0.05, matFor, RG, key);
     if (name !== 'STAIR') box(rect[0], rect[2], rect[1], rect[3], i * FTF + 0.02, i * FTF + 0.3, p.floorMat, RG);
   }));
 
-  // ---- furniture, simple shapes at real sizes (inches); each also blocks walking
-  const M = (c, o = {}) => std(c, { roughness: 0.8, ...o });
-  const fab = M(0x5f7486), wood = M(0x7a5236, { roughness: 0.6 }), dark = M(0x1b1b1d, { roughness: 0.3 }), sheet = M(0x9fb6cc),
-        cloth = M(0xf3efe6), appliance = M(0xdfe2e4, { roughness: 0.35, metalness: 0.15 });
-  const at = lv => lv === 'F' ? FTF : 0;
-  const P = (lv, x1, x2, y1, y2, h1, h2, m) => box(x1, x2, y1, y2, at(lv) + h1, at(lv) + h2, m, RG);
-  const solid = (lv, r) => WALK[lv].blocks.push(r);
-  const legs = (lv, x1, x2, y1, y2, h, m, t = 1.5) => [[x1, y1], [x2 - t, y1], [x1, y2 - t], [x2 - t, y2 - t]].forEach(([x, y]) => P(lv, x, x + t, y, y + t, 0, h, m));
-  const table = (lv, x1, x2, y1, y2, h, m) => { P(lv, x1, x2, y1, y2, h - 1.5, h, m); legs(lv, x1 + 1, x2 - 1, y1 + 1, y2 - 1, h - 1.5, m); };
-  const chair = (lv, cx, cy, back) => {             // 16" chair, back on side 'N' / 'S' / 'E' / 'W'
-    table(lv, cx - 8, cx + 8, cy - 8, cy + 8, 18, wood);
-    const b = { N: [cx - 8, cx + 8, cy - 8, cy - 6.5], S: [cx - 8, cx + 8, cy + 6.5, cy + 8], W: [cx - 8, cx - 6.5, cy - 8, cy + 8], E: [cx + 6.5, cx + 8, cy - 8, cy + 8] }[back];
-    P(lv, b[0], b[1], b[2], b[3], 18, 34, wood);
-  };
-
-  // both bedrooms: queen bed (5'0" x 6'3" mattress) with its head on the stair-side wall, wardrobe, side table, study table
-  ['G', 'F'].forEach(lv => {
-    P(lv, 173, 177, 155, 221, 0, 42, wood);                       // headboard
-    P(lv, 97, 173, 157, 219, 3, 11, wood); legs(lv, 97, 173, 157, 219, 3, wood, 3);
-    P(lv, 98, 173, 158, 218, 11, 18.5, cloth);                    // mattress
-    P(lv, 98, 152, 157.6, 218.4, 18.5, 19, sheet);                // bed sheet on the lower part
-    P(lv, 160, 171, 161, 186, 18.5, 23, cloth); P(lv, 160, 171, 190, 215, 18.5, 23, cloth);   // pillows
-    solid(lv, [97, 155, 177, 221]);
-    table(lv, 159, 177, 222, 238.5, 22, wood); solid(lv, [159, 222, 177, 239]);                  // side table
-    P(lv, 20, 92, 119.5, 143.5, 0, 84, wood);                     // 3-door wardrobe, 6'0" wide, 2'0" deep, 7'0" high
-    [44, 68].forEach(x => P(lv, x - 0.3, x + 0.3, 143.5, 143.8, 2, 82, dark));
-    solid(lv, [20, 119, 92, 144]);
-    table(lv, 15, 57, 219, 239, 30, wood); chair(lv, 36, 210, 'N'); solid(lv, [15, 201, 57, 239]);   // study table + chair
-  });
-
-  // hall: 2-seater sofa facing the TV on the east wall, coffee table, 4-seater dining table
-  P('G', 262, 294, 16, 78, 5, 17, fab); legs('G', 263, 293, 17, 77, 5, dark, 2);
-  P('G', 262, 270, 16, 78, 17, 33, fab);                                      // back
-  P('G', 262, 294, 16, 22, 17, 25, fab); P('G', 262, 294, 72, 78, 17, 25, fab);   // arms
-  solid('G', [262, 16, 294, 78]);
-  table('G', 313, 331, 29, 65, 16, wood); solid('G', [313, 29, 331, 65]);
-  P('G', 363, 378, 17, 77, 0, 20, wood); P('G', 374.5, 376, 25, 69, 32, 57, dark); solid('G', [363, 17, 378, 77]);   // TV unit + 50" TV
-  table('G', 196, 244, 30, 60, 30, wood);                                     // dining table 4'0" x 2'6"
-  chair('G', 211, 21, 'N'); chair('G', 229, 21, 'N'); chair('G', 211, 69, 'S'); chair('G', 229, 69, 'S');
-  solid('G', [196, 12, 244, 78]);
-  // kitchen: fridge by the west wall
-  P('G', 290.5, 318, 160, 186, 0, 66, appliance); P('G', 318, 318.4, 163, 165, 30, 60, dark); solid('G', [290.25, 160, 318, 186]);
-  // wash area: washing machine
-  P('G', 30, 54, 89, 113, 0, 34, appliance); cyl(42, 89, 7, 7, 14, 14.2, dark, RG, 20).rotation.x = Math.PI / 2;
-  solid('G', [30, 89, 54, 113]);
+  // ---- furniture, fans, lights, switch boards: movable items (see Arrange mode)
+  initItems();
 
   // one ceiling lamp per room, only lit in walk mode
   model.floors.slice(0, 2).forEach((fl, i) => fl.rooms.forEach(({ name, rect: [x1, y1, x2, y2] }) => {
     if (i === 0 && name === 'STAIR') return;               // no ceiling over the ground-floor stairs (it is the open stairwell)
     const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, big = (x2 - x1) * (y2 - y1) > 12000;
     const lamp = new THREE.PointLight(0xfff0d8, big ? 26 : 14, 26, 1.8);
-    lamp.position.set(cx, i * FTF + H - 16, cy); walk.lights.add(lamp);
-    const bulb = cyl(cx, cy, 5, 5, i * FTF + H - 1.5, i * FTF + H, mat.led, walk.lights, 16); bulb.castShadow = false;
+    lamp.position.set(cx, i * FTF + H - 16, cy); walk.lights.add(lamp);          // room light (the visible fittings are movable items)
   }));
 }
 
@@ -1449,7 +1850,8 @@ function setWalk(on) {
   document.body.classList.toggle('walk', on);
   document.getElementById('walkHud').hidden = !on;
   controls.enabled = !on;
-  walk.lights.visible = on;
+  walk.lights.visible = on; itemsGroup.visible = on; wiresGroup.visible = on && arr.wires;
+  if (!on && arr.on) setArrange(false);
   labelRenderer.domElement.style.display = on ? 'none' : '';
   doorLeaves.forEach(m => { if (OPEN_DOORS.includes(m.userData.door)) m.visible = !on; });
   Object.assign(mat.glass, on ? { transparent: true, opacity: 0.28, depthWrite: false } : { transparent: false, opacity: 1, depthWrite: true });
@@ -1478,16 +1880,17 @@ function walkTick(dt) {
   if (fwd || side) {
     const s = Math.sin(walk.yaw), c = Math.cos(walk.yaw), v = WALK_SPEED * dt / Math.max(1, Math.hypot(fwd, side));
     const nx = walk.x + (-s * fwd + c * side) * v, ny = walk.y + (-c * fwd - s * side) * v;
-    const was = walk.level;
+    const was = walk.level, stuck = !walkFree(walk.level, walk.x, walk.y);
     let lv = stairLevel(walk.level, nx, walk.y);
-    if (walkFree(lv, nx, walk.y)) { walk.x = nx; walk.level = lv; }
+    if (stuck || walkFree(lv, nx, walk.y)) { walk.x = nx; walk.level = lv; }
     lv = stairLevel(walk.level, walk.x, ny);
-    if (walkFree(lv, walk.x, ny)) { walk.y = ny; walk.level = lv; }
+    if (stuck || walkFree(lv, walk.x, ny)) { walk.y = ny; walk.level = lv; }
     if (walk.level !== was) floorButton();
   }
   walk.h += (walkFloorH() - walk.h) * Math.min(1, dt * 9);
   camera.position.set(walk.x * IN, (walk.h + EYE) * IN, walk.y * IN);
   camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
+  if (arr.fans) items.forEach(it => { const sp = it.g?.userData.spin; if (sp) sp.rotation.y += dt * 4.5; });   // fans turning
   drawWalkMap(false);
 }
 
@@ -1511,10 +1914,20 @@ function drawWalkMap(force) {
   if (ml === 'G') { R('#e4dfd2', [NEIGH[0], NEIGH[3], NEIGH[2], 0]); R('#ffffff', [0, 0, W, D]); }
   else { frontEdge().segs.forEach(([a, b, d]) => R('#e9e2d2', [a, -d, b, 0])); R('#e9e2d2', [0, 0, W, D]); R('#ffffff', [FFBLOCK.x1, FFBLOCK.y1, FFBLOCK.x2, FFBLOCK.y2]); }
   L.blocks.forEach(b => R('#c9c4b8', b));
+  (itemBlocks[ml] || []).forEach(b => R('#b4a891', b));
+  if (arr.on) items.forEach(it => {
+    if (it.lv !== ml || CAT[it.t].grp !== 'Electrical') return;
+    g.fillStyle = { fn: '#d99a00', lt: '#e8c547', tb: '#e8c547', sw: '#222', so: '#777', ac: '#2a6fa8', ex: '#2a6fa8', db: '#a33' }[it.t];
+    g.beginPath(); g.arc(ox + it.x * s, oy + it.y * s, it.t === 'fn' ? 5 : 3.2, 0, 7); g.fill();
+  });
   L.walls.forEach(w => R('#3a3733', w));
   g.strokeStyle = '#8f897d'; g.lineWidth = 1; g.beginPath();                       // stair treads
   for (let i = 0; i <= 8; i++) [[243.25, 281.25], [186, STAIR_WELL[0]]].forEach(([a, b]) => { g.moveTo(ox + a * s, oy + (119 + 10 * i) * s); g.lineTo(ox + b * s, oy + (119 + 10 * i) * s); });
   g.stroke();
+  if (arr.on && arr.sel && arr.sel.lv === ml) {
+    const it = arr.sel, f = CAT[it.t].kind === 'floor' ? footprint(it) : [it.x - 6, it.y - 6, it.x + 6, it.y + 6];
+    g.strokeStyle = '#ff6a00'; g.lineWidth = 3; g.strokeRect(ox + f[0] * s, oy + f[1] * s, (f[2] - f[0]) * s, (f[3] - f[1]) * s);
+  }
   const px = ox + walk.x * s, py = oy + walk.y * s, a = walk.yaw;
   g.fillStyle = '#b5452f'; g.beginPath();
   g.moveTo(px - Math.sin(a) * 13, py - Math.cos(a) * 13);
@@ -1584,6 +1997,8 @@ function bindWalk() {
     p[f] = +e.target.value; p[mk].color.setHex(list[p[f]][1]); savePaint(); e.target.blur();
   }));
 
+  bindArrange(el);
+
   // tap the map to jump there
   $('walkMap').addEventListener('click', e => {
     const { cv, s, ox, oy } = walkMapXf(), b = cv.getBoundingClientRect();
@@ -1612,7 +2027,11 @@ if (params.get('walk')) {                 // open straight into walk mode, e.g. 
   setWalk(true);
   if (params.get('wx')) walkGo(params.get('wl') || 'G', +params.get('wx'), +params.get('wy'), +(params.get('wyaw') || 0), +(params.get('wp') || 0));
 }
-window.houseDebug = { paint, curPaintKey,  walk, walkFree, walkGo, setWalk, walkTick, WALK_PLACES, stairH, stairLevel };   // for testing from the console
+if (walk.on && params.get('arr')) setArrange(true);              // ?arr=1 opens Arrange, &wires=1 shows the wiring runs
+if (walk.on && params.get('wires')) { arr.wires = true; document.getElementById('edWires').checked = true; wiresGroup.visible = true; rebuildWires(); }
+if (!walkFromUrl && (RC0 || LAY0)) persist();      // restored from this browser: put it in the link too
+updateSummary();
+window.houseDebug = { camera, paint, curPaintKey, arr, CAT, getItems: () => items, addItem, arrTap, setArrange, nudge, persist, encLayout, walk, walkFree, walkGo, setWalk, walkTick, WALK_PLACES, stairH, stairLevel };   // for testing from the console
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);

@@ -1512,22 +1512,32 @@ function defaultItems() {
   ['G', 'F'].forEach(lv => {                                        // both bedrooms
     F('bd', lv, 137, 188, 3); F('st', lv, 168, 230.5); F('wd', lv, 56, 131.5); F('sd', lv, 36, 229, 2); F('ch', lv, 36, 210);
     Cl('fn', lv, 93, 179); Cl('lt', lv, 50, 179);
-    Wl('sw', lv, 133, 119, 0, 48); Wl('so', lv, 168, 239, 2, 27); Wl('so', lv, 46, 239, 2, 34);
+    Wl('sw', lv, 133, 119, 0, 48);
   });
   // hall
   F('sf', 'G', 278, 47, 1); F('ct', 'G', 322, 47, 1); F('tv', 'G', 370.5, 47, 3); F('dn', 'G', 220, 45);
   Cl('fn', 'G', 220, 50); Cl('fn', 'G', 322, 50); Cl('lt', 'G', 165, 62); Cl('lt', 'G', 272, 62);
-  Wl('sw', 'G', 202, 9, 0, 48); Wl('so', 'G', 378, 47, 3, 26); Wl('so', 'G', 252, 9, 0, 12); Wl('db', 'G', 378, 98, 3, 66);
+  Wl('sw', 'G', 202, 9, 0, 48); Wl('db', 'G', 378, 98, 3, 66);
   // kitchen
   F('fr', 'G', 304.25, 173, 1);
   Wl('sw', 'G', 338, 119, 0, 48); Wl('tb', 'G', 290.25, 205, 1, 84); Cl('lt', 'G', 322, 175);
-  Wl('so', 'G', 378, 195, 3, 42); Wl('so', 'G', 342, 239, 2, 42); Wl('so', 'G', 290.25, 192, 1, 48); Wl('ex', 'G', 378, 225, 3, 84);
+  Wl('ex', 'G', 378, 225, 3, 84);
   // wash + toilet
   F('wm', 'G', 42, 101, 2);
-  Wl('sw', 'G', 80, 73.5, 0, 48); Cl('lt', 'G', 69, 39); Cl('lt', 'G', 75, 94); Wl('so', 'G', 62, 114.5, 2, 42);
+  Wl('sw', 'G', 80, 73.5, 0, 48); Cl('lt', 'G', 69, 39); Cl('lt', 'G', 75, 94); 
   // first floor: passage, toilet, stairwell
   Wl('sw', 'F', 200, 60.5, 0, 48); Cl('lt', 'F', 160, 86); Cl('lt', 'F', 250, 86);
   Cl('lt', 'F', 57, 87); Wl('sw', 'F', 109.5, 80, 1, 48); Cl('lt', 'F', 233, 200);
+  // plug points: where the owner marked them on the printed plan (2026-11-25)
+  [[207, 9, 0, 12], [296, 9, 0, 12], [378, 67, 3, 12],             // hall: north wall x2, east wall
+   [9, 99, 1, 42],                                                  // wash: west wall
+   [118, 119, 0, 12], [9, 214, 1, 12], [160, 239, 2, 27],           // bedroom: north, west, south (bedside)
+   [265, 239, 2, 12],                                               // stair: south wall
+   [327, 239, 2, 42], [290.25, 192, 1, 48]]                         // kitchen: south wall over the platform, west wall by the fridge
+    .forEach(([x, y, r, h]) => Wl('so', 'G', x, y, r, h));
+  [[177, 60.5, 0, 12],                                              // passage: north wall
+   [114, 119, 0, 12], [9, 220, 1, 12], [156, 239, 2, 27]]           // bedroom: north, west, south (bedside)
+    .forEach(([x, y, r, h]) => Wl('so', 'F', x, y, r, h));
   return L;
 }
 

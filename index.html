@@ -1784,7 +1784,7 @@ function elecSheet() {
   const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const nice = s => s.toLowerCase().replace(/(^|[\s/])\w/g, c => c.toUpperCase());
   const wallOf = r => ['North', 'West', 'South', 'East'][r];
-  let html = '', rowsAll = '';
+  let html = '', rowsAll = '', plugHtml = '';
   ['G', 'F'].forEach((lv, fi) => {
     const fl = model.floors[fi], list = items.filter(it => it.lv === lv && ELEC_SYM[it.t]);
     if (!list.length) return;
@@ -1807,7 +1807,8 @@ function elecSheet() {
     rows.forEach((r, k) => { r.no = `${lv}${k + 1}`; });
 
     // plan drawing (inches -> px)
-    const S = 2.1, pad = 34, vw = W * S + pad * 2, vh = D * S + pad * 2, X = x => pad + x * S, Y = y => pad + y * S;
+    const plan = (rowsD, S = 2.1) => {
+    const pad = 34, vw = W * S + pad * 2, vh = D * S + pad * 2, X = x => pad + x * S, Y = y => pad + y * S;
     let svg = `<svg viewBox="0 0 ${vw} ${vh}" xmlns="http://www.w3.org/2000/svg" font-family="Arial">`;
     svg += `<rect x="${X(0)}" y="${Y(0)}" width="${W * S}" height="${D * S}" fill="#fff"/>`;
     fl.rooms.forEach(r => { svg += `<text x="${X(r.rect[0]) + 6}" y="${Y(r.rect[3]) - 6}" font-size="12" fill="#9a958c">${esc(nice(r.name))}</text>`; });   // room name in its bottom-left corner
@@ -1822,7 +1823,7 @@ function elecSheet() {
     if (fi === 0) svg += `<text x="${X(W / 2)}" y="16" font-size="12" text-anchor="middle" fill="#555">▲ NORTH · front · main road side</text>`;
     else svg += `<text x="${X(W / 2)}" y="16" font-size="12" text-anchor="middle" fill="#555">▲ NORTH · front</text>`;
     const COL = { so: '#c0392b', sw: '#222', db: '#7b2d8b', ac: '#1f6fb2', tb: '#c99700', ex: '#1f6fb2', lt: '#e0a800', fn: '#d35400' };
-    rows.forEach(({ it, no }) => {
+    rowsD.forEach(({ it, no }) => {
       const C = CAT[it.t], n = FRONT[it.r], col = COL[it.t];
       const x = X(it.x), y = Y(it.y);
       if (it.t === 'fn') svg += `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="${col}" stroke-width="2"/><path d="M${x - 6} ${y - 6}L${x + 6} ${y + 6}M${x + 6} ${y - 6}L${x - 6} ${y + 6}" stroke="${col}" stroke-width="2"/>`;
@@ -1833,17 +1834,23 @@ function elecSheet() {
       svg += `<text x="${lx}" y="${ly}" font-size="12" font-weight="bold" fill="${col}" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="3">${no}</text>`;
     });
     svg += '</svg>';
+    return svg; };
+    const svg = plan(rows);
     const tr = rows.map(r => `<tr><td><b>${r.no}</b></td><td>${ELEC_SYM[r.it.t]}</td><td>${esc(r.rm)}</td><td>${r.where}</td><td>${r.from}</td><td>${r.height}</td></tr>`).join('');
     html += `<section><h2>${lv === 'G' ? 'Ground floor' : 'First floor'}</h2>${svg}
       <table><thead><tr><th>No.</th><th>Item</th><th>Room</th><th>Where</th><th>Position</th><th>Height above floor (to centre)</th></tr></thead><tbody>${tr}</tbody></table></section>`;
     rowsAll += tr;
+    const plugs = rows.filter(r => r.it.t === 'so');
+    if (plugs.length) plugHtml += `<div class="pf"><h3>${lv === 'G' ? 'Ground floor' : 'First floor'} – ${plugs.length} plug points</h3>${plan(plugs).replace('<svg ', '<svg class="small" ')}
+      <table><thead><tr><th>No.</th><th>Room</th><th>Wall</th><th>From left corner</th><th>Height</th></tr></thead><tbody>${plugs.map(r =>
+        `<tr><td><b>${r.no}</b></td><td>${esc(r.rm)}</td><td>${r.where}</td><td>${r.from.replace(' from left corner', '')}</td><td>${r.height}</td></tr>`).join('')}</tbody></table></div>`;
   });
   const count = t => items.filter(i => i.t === t).length;
   const { segs } = wireRoutes(), len = segs.reduce((s, [a, b]) => s + Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), 0);
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Anijo House – electrical points</title>
 <style>body{font-family:Arial,sans-serif;color:#222;margin:18px;max-width:1000px}h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:18px 0 6px}
-svg{width:100%;height:auto;border:1px solid #ddd}table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}th,td{border:1px solid #bbb;padding:4px 6px;text-align:left}
+svg{width:100%;height:auto;border:1px solid #ddd}svg.small{width:100%;display:block}.pp{display:flex;gap:14px;align-items:flex-start}.pf{flex:1;min-width:0}.pf table{font-size:11px}h3{font-size:14px;margin:12px 0 4px}table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}th,td{border:1px solid #bbb;padding:4px 6px;text-align:left}
 th{background:#f0ede6}.legend span{display:inline-block;margin-right:14px}.k{display:inline-block;width:11px;height:11px;margin-right:4px;vertical-align:-1px}
 .note{font-size:12px;color:#555}svg{page-break-inside:avoid}tr{page-break-inside:avoid}@media print{button{display:none}section+section{page-break-before:always}}</style></head><body>
 <button onclick="print()" style="float:right;padding:8px 14px;font-size:14px">Print / save as PDF</button>
@@ -1851,6 +1858,7 @@ th{background:#f0ede6}.legend span{display:inline-block;margin-right:14px}.k{dis
 <div class="note">Plug points ${count('so')} · Switch boards ${count('sw')} · Fans ${count('fn')} · Lights ${count('lt') + count('tb')}${count('ac') ? ` · AC ${count('ac')}` : ''}${count('ex') ? ` · Exhaust ${count('ex')}` : ''} · wiring roughly ${Math.round(len / 12)} ft of conduit.<br>
 "From left corner" = stand facing that wall; measure from the corner on your left. Heights are to the centre of the board / socket. Positions are the owner's choice from the 3D walk-through; the electrician should confirm loads, earthing and circuit sizes.</div>
 <div class="legend note" style="margin-top:6px"><span><i class="k" style="background:#c0392b"></i>Plug point</span><span><i class="k" style="background:#222"></i>Switch board</span><span><i class="k" style="background:#7b2d8b"></i>Main switch / MCB</span><span><i class="k" style="background:#1f6fb2"></i>AC / exhaust</span><span><i class="k" style="background:#e0a800;border-radius:50%"></i>Ceiling light</span><span><i class="k" style="background:#c99700"></i>Tube light</span><span>⊗ Ceiling fan</span><span><i class="k" style="background:#2f2c28"></i>Wall</span><span><i class="k" style="background:#bfdcef"></i>Window</span></div>
+<section><h2>Plug points only (${count('so')})</h2><div class="note">Same numbers as on the full plan. Stand facing the wall and measure from the corner on your left; height is to the centre of the socket.</div><div class="pp">${plugHtml}</div></section>
 ${html}
 <div id="plans" hidden>
   <div class="plans-bar"><b>2D floor plans · R0</b>
